@@ -6,6 +6,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { CreateRequestPage } from "@/pages/CreateRequestPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { RequestDetailPage } from "@/pages/RequestDetailPage";
+import { KnowledgeBasePage } from "@/pages/KnowledgeBasePage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -38,6 +39,7 @@ function App() {
               <Route path="create" element={<CreateRequestPage />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="request/:id" element={<RequestDetailPage />} />
+              <Route path="knowledge" element={<KnowledgeBasePage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Routes>
