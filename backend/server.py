@@ -10,6 +10,10 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
+from cryptography.fernet import Fernet
+import base64
+import paramiko
+import io
 
 
 ROOT_DIR = Path(__file__).parent
@@ -19,6 +23,10 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Encryption key (in production, store this securely in env)
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', Fernet.generate_key())
+cipher_suite = Fernet(ENCRYPTION_KEY if isinstance(ENCRYPTION_KEY, bytes) else ENCRYPTION_KEY.encode())
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -46,6 +54,7 @@ class RequestStatus(str, Enum):
     validated = "validated"
     approved = "approved"
     rejected = "rejected"
+    deployed = "deployed"
 
 class ValidationResult(str, Enum):
     passed = "passed"
@@ -61,6 +70,19 @@ class KnowledgeCategory(str, Enum):
     documentation = "documentation"
     best_practices = "best_practices"
 
+class ServerType(str, Enum):
+    ftp = "ftp"
+    sftp = "sftp"
+    ssh = "ssh"
+
+
+# Helper functions for encryption
+def encrypt_string(text: str) -> str:
+    return cipher_suite.encrypt(text.encode()).decode()
+
+def decrypt_string(encrypted_text: str) -> str:
+    return cipher_suite.decrypt(encrypted_text.encode()).decode()
+
 
 # Models
 class CodeRequest(BaseModel):
@@ -72,7 +94,7 @@ class CodeRequest(BaseModel):
     area_of_app: Optional[str] = None
     screenshots: Optional[List[str]] = None
     links: Optional[List[str]] = None
-    knowledge_base_ids: Optional[List[str]] = None  # New field
+    knowledge_base_ids: Optional[List[str]] = None
     status: RequestStatus = RequestStatus.pending
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -147,7 +169,7 @@ class KnowledgeBase(BaseModel):
     code_example: Optional[str] = None
     bad_example: Optional[str] = None
     tags: List[str] = []
-    priority: int = 0  # Higher priority = more important
+    priority: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -172,6 +194,52 @@ class KnowledgeBaseUpdate(BaseModel):
     bad_example: Optional[str] = None
     tags: Optional[List[str]] = None
     priority: Optional[int] = None
+
+# Server Connection Models
+class ServerConnection(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    server_type: ServerType
+    host: str
+    port: int
+    username: str
+    password: Optional[str] = None  # Encrypted
+    ssh_key: Optional[str] = None  # Encrypted
+    remote_path: str = "/"
+    description: Optional[str] = None
+    is_active: bool = True
+    last_connected: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ServerConnectionCreate(BaseModel):
+    name: str
+    server_type: ServerType
+    host: str
+    port: int
+    username: str
+    password: Optional[str] = None
+    ssh_key: Optional[str] = None
+    remote_path: str = "/"
+    description: Optional[str] = None
+
+class ServerConnectionUpdate(BaseModel):
+    name: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[int] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    ssh_key: Optional[str] = None
+    remote_path: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class DeployRequest(BaseModel):
+    request_id: str
+    server_id: str
+    files_to_deploy: List[str]  # File paths to deploy
 
 
 # Routes
@@ -323,6 +391,244 @@ async def delete_knowledge(knowledge_id: str):
         raise HTTPException(status_code=404, detail="Knowledge not found")
     
     return {"success": True}
+
+# Server Connection Routes
+@api_router.post("/servers", response_model=ServerConnection)
+async def create_server(input: ServerConnectionCreate):
+    server_dict = input.model_dump()
+    
+    # Encrypt sensitive data
+    if server_dict.get('password'):
+        server_dict['password'] = encrypt_string(server_dict['password'])
+    if server_dict.get('ssh_key'):
+        server_dict['ssh_key'] = encrypt_string(server_dict['ssh_key'])
+    
+    server_obj = ServerConnection(**server_dict)
+    
+    doc = server_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc.get('last_connected'):
+        doc['last_connected'] = doc['last_connected'].isoformat()
+    
+    await db.servers.insert_one(doc)
+    return server_obj
+
+@api_router.get("/servers", response_model=List[ServerConnection])
+async def get_servers():
+    servers = await db.servers.find({}, {"_id": 0}).to_list(1000)
+    
+    for server in servers:
+        if isinstance(server['created_at'], str):
+            server['created_at'] = datetime.fromisoformat(server['created_at'])
+        if isinstance(server['updated_at'], str):
+            server['updated_at'] = datetime.fromisoformat(server['updated_at'])
+        if server.get('last_connected') and isinstance(server['last_connected'], str):
+            server['last_connected'] = datetime.fromisoformat(server['last_connected'])
+        
+        # Don't send decrypted passwords to frontend
+        if server.get('password'):
+            server['password'] = '***ENCRYPTED***'
+        if server.get('ssh_key'):
+            server['ssh_key'] = '***ENCRYPTED***'
+    
+    return servers
+
+@api_router.get("/servers/{server_id}", response_model=ServerConnection)
+async def get_server(server_id: str):
+    server = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    if isinstance(server['created_at'], str):
+        server['created_at'] = datetime.fromisoformat(server['created_at'])
+    if isinstance(server['updated_at'], str):
+        server['updated_at'] = datetime.fromisoformat(server['updated_at'])
+    if server.get('last_connected') and isinstance(server['last_connected'], str):
+        server['last_connected'] = datetime.fromisoformat(server['last_connected'])
+    
+    # Don't send decrypted passwords
+    if server.get('password'):
+        server['password'] = '***ENCRYPTED***'
+    if server.get('ssh_key'):
+        server['ssh_key'] = '***ENCRYPTED***'
+    
+    return server
+
+@api_router.patch("/servers/{server_id}", response_model=ServerConnection)
+async def update_server(server_id: str, input: ServerConnectionUpdate):
+    update_dict = {k: v for k, v in input.model_dump().items() if v is not None}
+    
+    # Encrypt sensitive data if provided
+    if update_dict.get('password'):
+        update_dict['password'] = encrypt_string(update_dict['password'])
+    if update_dict.get('ssh_key'):
+        update_dict['ssh_key'] = encrypt_string(update_dict['ssh_key'])
+    
+    update_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.servers.update_one(
+        {"id": server_id},
+        {"$set": update_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    updated = await get_server(server_id)
+    return updated
+
+@api_router.delete("/servers/{server_id}")
+async def delete_server(server_id: str):
+    result = await db.servers.delete_one({"id": server_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    return {"success": True}
+
+@api_router.post("/servers/{server_id}/test")
+async def test_server_connection(server_id: str):
+    """Test server connection"""
+    server = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    try:
+        # Decrypt credentials
+        password = decrypt_string(server['password']) if server.get('password') else None
+        ssh_key_str = decrypt_string(server['ssh_key']) if server.get('ssh_key') else None
+        
+        if server['server_type'] in ['ssh', 'sftp']:
+            # Test SSH/SFTP connection
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            
+            if ssh_key_str:
+                # Use SSH key
+                key = paramiko.RSAKey.from_private_key(io.StringIO(ssh_key_str))
+                ssh.connect(
+                    hostname=server['host'],
+                    port=server['port'],
+                    username=server['username'],
+                    pkey=key,
+                    timeout=10
+                )
+            else:
+                # Use password
+                ssh.connect(
+                    hostname=server['host'],
+                    port=server['port'],
+                    username=server['username'],
+                    password=password,
+                    timeout=10
+                )
+            
+            ssh.close()
+            
+            # Update last connected
+            await db.servers.update_one(
+                {"id": server_id},
+                {"$set": {"last_connected": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            return {"success": True, "message": "Connection successful"}
+        
+        else:
+            # FTP connection test would go here
+            return {"success": True, "message": "FTP testing not yet implemented"}
+    
+    except Exception as e:
+        return {"success": False, "message": f"Connection failed: {str(e)}"}
+
+@api_router.post("/deploy")
+async def deploy_code(input: DeployRequest):
+    """Deploy generated code to server"""
+    # Get server details
+    server = await db.servers.find_one({"id": input.server_id}, {"_id": 0})
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    # Get generated code
+    code_results = await db.generated_code.find({"request_id": input.request_id}, {"_id": 0}).to_list(1)
+    if not code_results:
+        raise HTTPException(status_code=404, detail="Generated code not found")
+    
+    generated_code = code_results[0]
+    
+    try:
+        # Decrypt credentials
+        password = decrypt_string(server['password']) if server.get('password') else None
+        ssh_key_str = decrypt_string(server['ssh_key']) if server.get('ssh_key') else None
+        
+        if server['server_type'] in ['ssh', 'sftp']:
+            # Deploy via SSH/SFTP
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            
+            if ssh_key_str:
+                key = paramiko.RSAKey.from_private_key(io.StringIO(ssh_key_str))
+                ssh.connect(
+                    hostname=server['host'],
+                    port=server['port'],
+                    username=server['username'],
+                    pkey=key,
+                    timeout=30
+                )
+            else:
+                ssh.connect(
+                    hostname=server['host'],
+                    port=server['port'],
+                    username=server['username'],
+                    password=password,
+                    timeout=30
+                )
+            
+            sftp = ssh.open_sftp()
+            
+            # Deploy each file
+            deployed_files = []
+            for change in generated_code['code_changes']:
+                if change['file_path'] in input.files_to_deploy:
+                    remote_path = f"{server['remote_path']}/{change['file_path']}"
+                    
+                    # Create directory if needed
+                    remote_dir = '/'.join(remote_path.split('/')[:-1])
+                    try:
+                        sftp.stat(remote_dir)
+                    except FileNotFoundError:
+                        # Create directory
+                        ssh.exec_command(f"mkdir -p {remote_dir}")
+                    
+                    # Upload file
+                    file_content = change['diff']
+                    with sftp.file(remote_path, 'w') as remote_file:
+                        remote_file.write(file_content)
+                    
+                    deployed_files.append(change['file_path'])
+            
+            sftp.close()
+            ssh.close()
+            
+            # Update request status to deployed
+            await db.code_requests.update_one(
+                {"id": input.request_id},
+                {"$set": {"status": "deployed", "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            return {
+                "success": True,
+                "message": f"Successfully deployed {len(deployed_files)} files",
+                "deployed_files": deployed_files
+            }
+        
+        else:
+            return {"success": False, "message": "FTP deployment not yet implemented"}
+    
+    except Exception as e:
+        return {"success": False, "message": f"Deployment failed: {str(e)}"}
 
 
 # Include the router in the main app
