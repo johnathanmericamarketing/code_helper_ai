@@ -12,7 +12,7 @@ const navItems = [
 
 export const Sidebar = () => {
   return (
-    <div className="w-64 bg-card border-r border-border h-screen flex flex-col sticky top-0">
+    <div className="hidden md:flex w-64 bg-card border-r border-border h-screen flex-col sticky top-0">
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">

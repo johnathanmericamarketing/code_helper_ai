@@ -8,6 +8,7 @@ import { HistoryPage } from "@/pages/HistoryPage";
 import { RequestDetailPage } from "@/pages/RequestDetailPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -28,20 +29,22 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="create" element={<CreateRequestPage />} />
-            <Route path="history" element={<HistoryPage />} />
-            <Route path="request/:id" element={<RequestDetailPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-      <Toaster position="top-right" richColors />
-    </div>
+    <ThemeProvider>
+      <div className="App">
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="create" element={<CreateRequestPage />} />
+              <Route path="history" element={<HistoryPage />} />
+              <Route path="request/:id" element={<RequestDetailPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+        <Toaster position="top-right" richColors />
+      </div>
+    </ThemeProvider>
   );
 }
 

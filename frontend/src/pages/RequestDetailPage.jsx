@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StepIndicator } from '@/components/StepIndicator';
-import { CodeDiffViewer } from '@/components/CodeDiffViewer';
+import { SideBySideDiff } from '@/components/SideBySideDiff';
+import { CodePlayground } from '@/components/CodePlayground';
 import { ValidationResults } from '@/components/ValidationResults';
+import { ExportButton } from '@/components/ExportButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Play, CheckCircle, XCircle, Download, FileCode, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -241,27 +243,30 @@ export const RequestDetailPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
           <Button variant="ghost" onClick={() => navigate('/history')} className="gap-2 mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to History
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">Request Details</h1>
-          <p className="text-muted-foreground mt-1">ID: {request.id}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Request Details</h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">ID: {request.id}</p>
         </div>
-        {request.status === 'pending' && !processing && (
-          <Button onClick={processRequest} className="gap-2" size="lg">
-            <Play className="w-5 h-5" />
-            Start AI Processing
-          </Button>
-        )}
-        {processing && (
-          <Button disabled className="gap-2" size="lg">
-            <Sparkles className="w-5 h-5 animate-spin" />
-            Processing...
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {request && <ExportButton data={request} fileName={`request-${request.id}`} />}
+          {request.status === 'pending' && !processing && (
+            <Button onClick={processRequest} className="gap-2" size="lg">
+              <Play className="w-5 h-5" />
+              Start AI Processing
+            </Button>
+          )}
+          {processing && (
+            <Button disabled className="gap-2" size="lg">
+              <Sparkles className="w-5 h-5 animate-spin" />
+              Processing...
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Step Indicator */}
@@ -399,20 +404,24 @@ export const RequestDetailPage = () => {
 
           <TabsContent value="code" className="space-y-6">
             {generatedData.code_changes.map((change, i) => (
-              <div key={i} className="space-y-2">
+              <div key={i} className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-muted-foreground">{change.description}</p>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </Button>
                 </div>
-                <CodeDiffViewer
+                <SideBySideDiff
                   original=""
                   modified={change.diff}
                   language="javascript"
                   fileName={change.file_path}
                 />
+                
+                {/* Code Playground */}
+                <div className="pt-4">
+                  <CodePlayground
+                    initialCode={change.diff}
+                    language="javascript"
+                  />
+                </div>
               </div>
             ))}
           </TabsContent>

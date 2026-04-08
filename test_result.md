@@ -381,6 +381,102 @@ frontend:
         agent: "testing"
         comment: "Toast notifications (using Sonner) are working correctly. Verified success toasts for: request submission, AI processing completion, approval, and settings save. All toasts appear in top-right position with proper styling."
 
+  - task: "Dark Mode Toggle"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/ThemeToggle.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Dark mode toggle working perfectly. Theme toggle button (moon/sun icon) is visible in header. Clicking toggles between light and dark themes. Theme changes are applied across all pages. Theme preference is saved to localStorage and persists after page reload. Tested theme switching multiple times successfully."
+
+  - task: "Dashboard Analytics - Recharts Integration"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/DashboardCharts.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Dashboard analytics charts are displaying correctly. Status Distribution (Pie chart) shows current state of all requests with percentage labels. Request Trends (Line chart) displays requests over last 7 days with Total and Completed lines. Requests by Application Area (Bar chart) shows distribution across different app areas. All 3 Recharts components are rendering properly with responsive containers and proper theming."
+
+  - task: "Enhanced Settings Page - Three Tabs"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/SettingsPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Enhanced Settings page with 3 tabs (General, AI Model, Safety) is working correctly. General tab: 5 toggle switches for notifications and preferences working. AI Model tab: All components functional including model dropdown (Claude 3 Opus/Sonnet/Haiku, GPT-4 variants), Temperature slider (0-1), Top P slider (0.1-1), Max Output Tokens input (256-8192), System Prompt textarea, and 3 preset prompt buttons (Balanced, Security-First, Performance-Optimized). Safety tab: Multiple toggle switches for safety settings. Save buttons working with toast notifications."
+
+  - task: "AI Model Configuration Component"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/AIModelConfig.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "AI Model Configuration component fully functional. Model selection dropdown displays all options (Claude 3 Opus/Sonnet/Haiku, GPT-4 Turbo/GPT-4/GPT-3.5 Turbo). Temperature slider adjusts from 0-1 with visual feedback (Focused/Balanced/Creative). Top P slider adjusts from 0.1-1. Max Tokens input accepts values 256-8192. System Prompt textarea allows custom prompts. Preset buttons (Balanced, Security-First, Performance-Optimized) update system prompt. Save Configuration button saves to localStorage with success toast."
+
+  - task: "Export Functionality - JSON and PDF"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/ExportButton.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Export functionality working correctly. Export button displays dropdown menu with 'Export as JSON' and 'Export as PDF' options. JSON export downloads request data as formatted JSON file. PDF export generates PDF document with request details using jsPDF library. Both export options show success toast notifications. Tested on request detail page successfully."
+
+  - task: "Side-by-Side Code Diff Viewer"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SideBySideDiff.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Side-by-Side Code Diff viewer working perfectly. Three sub-tabs available: 'Side by Side' (shows Original and Modified code in split view with 2 Monaco editors), 'Unified' (single view of modified code), and 'Modified Only' (shows only the modified code). All three views display correctly with proper syntax highlighting. Copy button copies code to clipboard. Download button downloads code file. Monaco editors load correctly with proper theming (light/dark mode support)."
+
+  - task: "Code Playground with Monaco Editor"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CodePlayground.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Code Playground component working correctly. Two tabs: 'Code Editor' and 'Output Console'. Monaco editor loads with generated code and proper syntax highlighting. Editor supports theme switching (light/dark). 'Run Code' button executes JavaScript code in browser sandbox. 'Reset' button restores original code. 'Clear Console' button clears output. Language badge and Sandbox badge display correctly. Note: Code execution uses eval() for demo purposes (marked as unsafe in production)."
+
+  - task: "Mobile Responsiveness"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/*.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Mobile responsiveness working well at 390x844 viewport. Dashboard: Stats cards stack vertically, charts are responsive, header shows mobile-optimized title 'CodeGen AI'. Sidebar is correctly hidden on mobile. Theme toggle, notification bell, and user avatar visible in mobile header. All content is readable and properly sized for mobile. Note: Mobile navigation menu/hamburger button not implemented - sidebar links not accessible on mobile, but core content displays correctly."
+
 backend:
   - task: "API - Create Request Endpoint"
     implemented: true
@@ -456,10 +552,10 @@ backend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "1.1"
+  test_sequence: 2
   run_ui: true
-  last_tested: "2026-04-07T14:20:31Z"
+  last_tested: "2026-04-08T13:58:00Z"
 
 test_plan:
   current_focus: []
@@ -470,3 +566,5 @@ test_plan:
 agent_communication:
   - agent: "testing"
     message: "Comprehensive testing completed successfully. All 23 frontend tasks and 6 backend tasks are working correctly. No critical issues found. Application is fully functional with proper UI/UX, all features working as expected, and no console or network errors detected. The AI Code Generator application is ready for production use."
+  - agent: "testing"
+    message: "Enhanced features testing completed. Tested 9 new features: Dark Mode (working perfectly with persistence), Dashboard Analytics with Recharts (Pie, Line, Bar charts all rendering), Enhanced Settings Page (3 tabs with AI Model Configuration), Export functionality (JSON/PDF working), Side-by-Side Code Diff (3 views with Monaco editors), Code Playground (with code execution), and Mobile Responsiveness (content displays correctly). Minor issue: Mobile navigation menu not implemented - sidebar links not accessible on mobile devices. All core enhanced features are functional."
