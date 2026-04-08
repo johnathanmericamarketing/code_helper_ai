@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Github, FolderOpen, Trash2, GitBranch, GitPull, GitCommit, RefreshCw, FileTree, Check, X } from 'lucide-react';
+import { Plus, Github, FolderOpen, Trash2, GitBranch, GitPull, GitCommit, RefreshCw, Folder, Check, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -326,7 +326,7 @@ export const IntegrationsPage = () => {
                   </div>
 
                   <Alert>
-                    <FileTree className="w-4 h-4" />
+                    <Folder className="w-4 h-4" />
                     <AlertTitle>Git Repository Detection</AlertTitle>
                     <AlertDescription className="text-xs">
                       If this directory contains a .git folder, Git operations (pull/push/commit) will be available.
