@@ -8,6 +8,7 @@ import { SideBySideDiff } from '@/components/SideBySideDiff';
 import { CodePlayground } from '@/components/CodePlayground';
 import { ValidationResults } from '@/components/ValidationResults';
 import { ExportButton } from '@/components/ExportButton';
+import { DeploymentDialog } from '@/components/DeploymentDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Play, CheckCircle, XCircle, Download, FileCode, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -453,25 +454,55 @@ export const RequestDetailPage = () => {
       )}
 
       {/* Actions */}
-      {request.status === 'validated' && (
-        <div className="flex items-center justify-end gap-4 p-6 bg-card border border-border rounded-lg">
+      {request.status === 'validated' && generatedData && (
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-end gap-4 p-6 bg-card border border-border rounded-lg">
           <Button variant="outline" onClick={handleReject} className="gap-2">
             <XCircle className="w-4 h-4" />
             Reject Changes
           </Button>
-          <Button onClick={handleApprove} className="gap-2">
+          <Button onClick={handleApprove} variant="outline" className="gap-2">
             <CheckCircle className="w-4 h-4" />
-            Approve & Deploy
+            Approve Only
           </Button>
+          <DeploymentDialog
+            requestId={id}
+            codeChanges={generatedData.code_changes}
+            onDeploySuccess={fetchRequest}
+            triggerButton={
+              <Button className="gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Approve & Deploy
+              </Button>
+            }
+          />
         </div>
       )}
 
-      {request.status === 'approved' && (
+      {request.status === 'approved' && generatedData && (
+        <>
+          <Alert className="bg-success/10 border-success">
+            <CheckCircle className="w-5 h-5 text-success" />
+            <AlertTitle className="text-success">Code Approved!</AlertTitle>
+            <AlertDescription className="text-success-foreground">
+              The code changes have been approved. You can now deploy them to your server.
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-end">
+            <DeploymentDialog
+              requestId={id}
+              codeChanges={generatedData.code_changes}
+              onDeploySuccess={fetchRequest}
+            />
+          </div>
+        </>
+      )}
+
+      {request.status === 'deployed' && (
         <Alert className="bg-success/10 border-success">
           <CheckCircle className="w-5 h-5 text-success" />
-          <AlertTitle className="text-success">Code Approved!</AlertTitle>
+          <AlertTitle className="text-success">Successfully Deployed!</AlertTitle>
           <AlertDescription className="text-success-foreground">
-            The code changes have been approved and are ready for deployment.
+            Code has been deployed to your server successfully.
           </AlertDescription>
         </Alert>
       )}
