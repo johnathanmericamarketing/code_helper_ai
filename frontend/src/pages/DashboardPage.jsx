@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, FileCode2, TrendingUp, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { DashboardCharts } from '@/components/DashboardCharts';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -92,19 +93,19 @@ export const DashboardPage = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title} className="border-border hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-3xl font-bold text-foreground mt-2">{stat.value}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-foreground mt-2">{stat.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -112,6 +113,11 @@ export const DashboardPage = () => {
           );
         })}
       </div>
+
+      {/* Charts */}
+      {requests.length > 0 && (
+        <DashboardCharts requests={requests} />
+      )}
 
       {/* Recent Requests */}
       <Card className="border-border">
