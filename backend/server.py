@@ -15,6 +15,432 @@ import base64
 import paramiko
 import io
 
+from github import Github, GithubException
+from git import Repo, GitCommandError
+import json
+
+
+# GitHub Connection Models
+class GitHubConnection(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    access_token: str  # Encrypted
+    username: Optional[str] = None
+    default_repo: Optional[str] = None
+    default_branch: str = "main"
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class GitHubConnectionCreate(BaseModel):
+    name: str
+    access_token: str
+    username: Optional[str] = None
+    default_repo: Optional[str] = None
+    default_branch: str = "main"
+
+class LocalWorkspace(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    path: str
+    description: Optional[str] = None
+    is_git_repo: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LocalWorkspaceCreate(BaseModel):
+    name: str
+    path: str
+    description: Optional[str] = None
+
+class FileNode(BaseModel):
+    name: str
+    path: str
+    type: str  # "file" or "directory"
+    size: Optional[int] = None
+    children: Optional[List['FileNode']] = None
+
+class GitOperation(BaseModel):
+    operation: str  # "pull", "push", "commit"
+    repo_path: str
+    message: Optional[str] = None
+    branch: Optional[str] = None
+
+
+# GitHub Routes
+@api_router.post("/github", response_model=GitHubConnection)
+async def create_github_connection(input: GitHubConnectionCreate):
+    conn_dict = input.model_dump()
+    
+    # Encrypt token
+    conn_dict['access_token'] = encrypt_string(conn_dict['access_token'])
+    
+    # Test connection
+    try:
+        decrypted_token = decrypt_string(conn_dict['access_token'])
+        g = Github(decrypted_token)
+        user = g.get_user()
+        conn_dict['username'] = user.login
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid GitHub token: {str(e)}")
+    
+    conn_obj = GitHubConnection(**conn_dict)
+    
+    doc = conn_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.github_connections.insert_one(doc)
+    return conn_obj
+
+@api_router.get("/github", response_model=List[GitHubConnection])
+async def get_github_connections():
+    connections = await db.github_connections.find({}, {"_id": 0}).to_list(100)
+    
+    for conn in connections:
+        if isinstance(conn['created_at'], str):
+            conn['created_at'] = datetime.fromisoformat(conn['created_at'])
+        if isinstance(conn['updated_at'], str):
+            conn['updated_at'] = datetime.fromisoformat(conn['updated_at'])
+        
+        # Mask token
+        if conn.get('access_token'):
+            conn['access_token'] = '***ENCRYPTED***'
+    
+    return connections
+
+@api_router.delete("/github/{connection_id}")
+async def delete_github_connection(connection_id: str):
+    result = await db.github_connections.delete_one({"id": connection_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    return {"success": True}
+
+@api_router.get("/github/{connection_id}/repos")
+async def get_github_repos(connection_id: str):
+    """Get list of repositories for this GitHub connection"""
+    conn = await db.github_connections.find_one({"id": connection_id}, {"_id": 0})
+    
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    try:
+        token = decrypt_string(conn['access_token'])
+        g = Github(token)
+        user = g.get_user()
+        
+        repos = []
+        for repo in user.get_repos():
+            repos.append({
+                "name": repo.name,
+                "full_name": repo.full_name,
+                "private": repo.private,
+                "default_branch": repo.default_branch,
+                "description": repo.description,
+                "url": repo.html_url,
+            })
+        
+        return repos
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch repos: {str(e)}")
+
+@api_router.get("/github/{connection_id}/repos/{owner}/{repo}/tree")
+async def get_github_repo_tree(connection_id: str, owner: str, repo: str, branch: str = "main"):
+    """Get file tree from GitHub repository"""
+    conn = await db.github_connections.find_one({"id": connection_id}, {"_id": 0})
+    
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    try:
+        token = decrypt_string(conn['access_token'])
+        g = Github(token)
+        repository = g.get_repo(f"{owner}/{repo}")
+        
+        contents = repository.get_contents("", ref=branch)
+        
+        def build_tree(contents_list):
+            tree = []
+            for content in contents_list:
+                node = {
+                    "name": content.name,
+                    "path": content.path,
+                    "type": content.type,
+                    "size": content.size if content.type == "file" else None,
+                }
+                
+                if content.type == "dir":
+                    try:
+                        dir_contents = repository.get_contents(content.path, ref=branch)
+                        node["children"] = build_tree(dir_contents)
+                    except:
+                        node["children"] = []
+                
+                tree.append(node)
+            
+            return tree
+        
+        return build_tree(contents)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch tree: {str(e)}")
+
+@api_router.get("/github/{connection_id}/repos/{owner}/{repo}/file")
+async def get_github_file(connection_id: str, owner: str, repo: str, path: str, branch: str = "main"):
+    """Get file content from GitHub"""
+    conn = await db.github_connections.find_one({"id": connection_id}, {"_id": 0})
+    
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    try:
+        token = decrypt_string(conn['access_token'])
+        g = Github(token)
+        repository = g.get_repo(f"{owner}/{repo}")
+        
+        file_content = repository.get_contents(path, ref=branch)
+        
+        return {
+            "name": file_content.name,
+            "path": file_content.path,
+            "content": file_content.decoded_content.decode('utf-8'),
+            "sha": file_content.sha,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch file: {str(e)}")
+
+@api_router.post("/github/{connection_id}/repos/{owner}/{repo}/push")
+async def push_to_github(connection_id: str, owner: str, repo: str, file_path: str, content: str, message: str, branch: str = "main"):
+    """Push file changes to GitHub"""
+    conn = await db.github_connections.find_one({"id": connection_id}, {"_id": 0})
+    
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    try:
+        token = decrypt_string(conn['access_token'])
+        g = Github(token)
+        repository = g.get_repo(f"{owner}/{repo}")
+        
+        # Try to get existing file
+        try:
+            file = repository.get_contents(file_path, ref=branch)
+            # Update existing file
+            repository.update_file(
+                path=file_path,
+                message=message,
+                content=content,
+                sha=file.sha,
+                branch=branch
+            )
+            action = "updated"
+        except GithubException:
+            # Create new file
+            repository.create_file(
+                path=file_path,
+                message=message,
+                content=content,
+                branch=branch
+            )
+            action = "created"
+        
+        return {"success": True, "message": f"File {action} successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to push: {str(e)}")
+
+
+# Local Workspace Routes
+@api_router.post("/workspace", response_model=LocalWorkspace)
+async def create_workspace(input: LocalWorkspaceCreate):
+    # Validate path exists
+    if not os.path.exists(input.path):
+        raise HTTPException(status_code=400, detail="Path does not exist")
+    
+    workspace_dict = input.model_dump()
+    
+    # Check if it's a git repo
+    workspace_dict['is_git_repo'] = os.path.exists(os.path.join(input.path, '.git'))
+    
+    workspace_obj = LocalWorkspace(**workspace_dict)
+    
+    doc = workspace_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.workspaces.insert_one(doc)
+    return workspace_obj
+
+@api_router.get("/workspace", response_model=List[LocalWorkspace])
+async def get_workspaces():
+    workspaces = await db.workspaces.find({}, {"_id": 0}).to_list(100)
+    
+    for ws in workspaces:
+        if isinstance(ws['created_at'], str):
+            ws['created_at'] = datetime.fromisoformat(ws['created_at'])
+    
+    return workspaces
+
+@api_router.delete("/workspace/{workspace_id}")
+async def delete_workspace(workspace_id: str):
+    result = await db.workspaces.delete_one({"id": workspace_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    return {"success": True}
+
+@api_router.get("/workspace/{workspace_id}/tree")
+async def get_workspace_tree(workspace_id: str, path: str = ""):
+    """Get file tree from local workspace"""
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    base_path = workspace['path']
+    full_path = os.path.join(base_path, path) if path else base_path
+    
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="Path not found")
+    
+    def build_tree(dir_path, relative_path=""):
+        items = []
+        try:
+            for item in os.listdir(dir_path):
+                if item.startswith('.') and item not in ['.git', '.gitignore']:
+                    continue
+                
+                item_path = os.path.join(dir_path, item)
+                item_relative = os.path.join(relative_path, item) if relative_path else item
+                
+                node = {
+                    "name": item,
+                    "path": item_relative,
+                    "type": "dir" if os.path.isdir(item_path) else "file",
+                }
+                
+                if node["type"] == "file":
+                    node["size"] = os.path.getsize(item_path)
+                else:
+                    # For directories, add children
+                    node["children"] = build_tree(item_path, item_relative)
+                
+                items.append(node)
+        except PermissionError:
+            pass
+        
+        return sorted(items, key=lambda x: (x["type"] == "file", x["name"]))
+    
+    return build_tree(full_path)
+
+@api_router.get("/workspace/{workspace_id}/file")
+async def get_workspace_file(workspace_id: str, file_path: str):
+    """Read file content from local workspace"""
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    full_path = os.path.join(workspace['path'], file_path)
+    
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return {
+            "name": os.path.basename(file_path),
+            "path": file_path,
+            "content": content,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+
+@api_router.post("/workspace/{workspace_id}/file")
+async def write_workspace_file(workspace_id: str, file_path: str, content: str):
+    """Write file content to local workspace"""
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    full_path = os.path.join(workspace['path'], file_path)
+    
+    try:
+        # Create directory if needed
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return {"success": True, "message": "File written successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to write file: {str(e)}")
+
+@api_router.post("/workspace/{workspace_id}/git")
+async def git_operation(workspace_id: str, operation: str, message: Optional[str] = None, branch: Optional[str] = None):
+    """Perform git operations on local workspace"""
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    if not workspace['is_git_repo']:
+        raise HTTPException(status_code=400, detail="Not a git repository")
+    
+    repo_path = workspace['path']
+    
+    try:
+        repo = Repo(repo_path)
+        
+        if operation == "pull":
+            origin = repo.remotes.origin
+            origin.pull(branch or repo.active_branch.name)
+            return {"success": True, "message": "Pulled successfully"}
+        
+        elif operation == "push":
+            if repo.is_dirty():
+                raise HTTPException(status_code=400, detail="Repository has uncommitted changes")
+            origin = repo.remotes.origin
+            origin.push(branch or repo.active_branch.name)
+            return {"success": True, "message": "Pushed successfully"}
+        
+        elif operation == "commit":
+            if not message:
+                raise HTTPException(status_code=400, detail="Commit message required")
+            
+            # Add all changes
+            repo.git.add(A=True)
+            
+            # Commit
+            repo.index.commit(message)
+            
+            return {"success": True, "message": "Committed successfully"}
+        
+        elif operation == "status":
+            return {
+                "success": True,
+                "branch": repo.active_branch.name,
+                "is_dirty": repo.is_dirty(),
+                "untracked_files": repo.untracked_files,
+                "modified_files": [item.a_path for item in repo.index.diff(None)],
+            }
+        
+        else:
+            raise HTTPException(status_code=400, detail="Invalid operation")
+    
+    except GitCommandError as e:
+        raise HTTPException(status_code=400, detail=f"Git error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Operation failed: {str(e)}")
+
+
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')

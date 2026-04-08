@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server } from 'lucide-react';
+import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/create', icon: FileCode2, label: 'New Request' },
   { to: '/history', icon: History, label: 'History' },
   { to: '/knowledge', icon: BookOpen, label: 'Knowledge Base' },
+  { to: '/integrations', icon: GitBranch, label: 'Integrations' },
   { to: '/servers', icon: Server, label: 'Servers' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
