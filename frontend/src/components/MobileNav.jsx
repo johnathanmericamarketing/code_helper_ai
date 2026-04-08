@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings, X, Menu } from 'lucide-react';
+import { FileCode2, LayoutDashboard, History, Settings, BookOpen, X, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -9,6 +10,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/create', icon: FileCode2, label: 'New Request' },
   { to: '/history', icon: History, label: 'History' },
+  { to: '/knowledge', icon: BookOpen, label: 'Knowledge Base' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

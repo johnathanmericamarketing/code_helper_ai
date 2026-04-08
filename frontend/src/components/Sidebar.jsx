@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings } from 'lucide-react';
+import { FileCode2, LayoutDashboard, History, Settings, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/create', icon: FileCode2, label: 'New Request' },
   { to: '/history', icon: History, label: 'History' },
+  { to: '/knowledge', icon: BookOpen, label: 'Knowledge Base' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

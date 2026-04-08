@@ -52,6 +52,15 @@ class ValidationResult(str, Enum):
     failed = "failed"
     warning = "warning"
 
+class KnowledgeCategory(str, Enum):
+    code_style = "code_style"
+    architecture = "architecture"
+    security = "security"
+    performance = "performance"
+    testing = "testing"
+    documentation = "documentation"
+    best_practices = "best_practices"
+
 
 # Models
 class CodeRequest(BaseModel):
@@ -63,6 +72,7 @@ class CodeRequest(BaseModel):
     area_of_app: Optional[str] = None
     screenshots: Optional[List[str]] = None
     links: Optional[List[str]] = None
+    knowledge_base_ids: Optional[List[str]] = None  # New field
     status: RequestStatus = RequestStatus.pending
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -73,6 +83,7 @@ class CodeRequestCreate(BaseModel):
     area_of_app: Optional[str] = None
     screenshots: Optional[List[str]] = None
     links: Optional[List[str]] = None
+    knowledge_base_ids: Optional[List[str]] = None
 
 class StructuredTask(BaseModel):
     task_type: TaskType
@@ -122,6 +133,45 @@ class GeneratedCodeCreate(BaseModel):
     validation_checks: List[ValidationCheck]
     summary: str
     rollback_instructions: str
+
+# Knowledge Base Models
+class KnowledgeBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    category: KnowledgeCategory
+    language: Optional[str] = None
+    framework: Optional[str] = None
+    description: str
+    code_example: Optional[str] = None
+    bad_example: Optional[str] = None
+    tags: List[str] = []
+    priority: int = 0  # Higher priority = more important
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class KnowledgeBaseCreate(BaseModel):
+    title: str
+    category: KnowledgeCategory
+    language: Optional[str] = None
+    framework: Optional[str] = None
+    description: str
+    code_example: Optional[str] = None
+    bad_example: Optional[str] = None
+    tags: List[str] = []
+    priority: int = 0
+
+class KnowledgeBaseUpdate(BaseModel):
+    title: Optional[str] = None
+    category: Optional[KnowledgeCategory] = None
+    language: Optional[str] = None
+    framework: Optional[str] = None
+    description: Optional[str] = None
+    code_example: Optional[str] = None
+    bad_example: Optional[str] = None
+    tags: Optional[List[str]] = None
+    priority: Optional[int] = None
 
 
 # Routes
@@ -209,6 +259,70 @@ async def get_generated_code_by_request(request_id: str):
             code['created_at'] = datetime.fromisoformat(code['created_at'])
     
     return code_results
+
+# Knowledge Base Routes
+@api_router.post("/knowledge-base", response_model=KnowledgeBase)
+async def create_knowledge(input: KnowledgeBaseCreate):
+    knowledge_dict = input.model_dump()
+    knowledge_obj = KnowledgeBase(**knowledge_dict)
+    
+    doc = knowledge_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.knowledge_base.insert_one(doc)
+    return knowledge_obj
+
+@api_router.get("/knowledge-base", response_model=List[KnowledgeBase])
+async def get_knowledge_base():
+    knowledge = await db.knowledge_base.find({}, {"_id": 0}).to_list(1000)
+    
+    for item in knowledge:
+        if isinstance(item['created_at'], str):
+            item['created_at'] = datetime.fromisoformat(item['created_at'])
+        if isinstance(item['updated_at'], str):
+            item['updated_at'] = datetime.fromisoformat(item['updated_at'])
+    
+    return knowledge
+
+@api_router.get("/knowledge-base/{knowledge_id}", response_model=KnowledgeBase)
+async def get_knowledge(knowledge_id: str):
+    knowledge = await db.knowledge_base.find_one({"id": knowledge_id}, {"_id": 0})
+    
+    if not knowledge:
+        raise HTTPException(status_code=404, detail="Knowledge not found")
+    
+    if isinstance(knowledge['created_at'], str):
+        knowledge['created_at'] = datetime.fromisoformat(knowledge['created_at'])
+    if isinstance(knowledge['updated_at'], str):
+        knowledge['updated_at'] = datetime.fromisoformat(knowledge['updated_at'])
+    
+    return knowledge
+
+@api_router.patch("/knowledge-base/{knowledge_id}", response_model=KnowledgeBase)
+async def update_knowledge(knowledge_id: str, input: KnowledgeBaseUpdate):
+    update_dict = {k: v for k, v in input.model_dump().items() if v is not None}
+    update_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.knowledge_base.update_one(
+        {"id": knowledge_id},
+        {"$set": update_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Knowledge not found")
+    
+    updated = await get_knowledge(knowledge_id)
+    return updated
+
+@api_router.delete("/knowledge-base/{knowledge_id}")
+async def delete_knowledge(knowledge_id: str):
+    result = await db.knowledge_base.delete_one({"id": knowledge_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Knowledge not found")
+    
+    return {"success": True}
 
 
 # Include the router in the main app
