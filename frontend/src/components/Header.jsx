@@ -11,17 +11,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { MobileNav } from '@/components/MobileNav';
 
 export const Header = () => {
   return (
     <header className="h-16 border-b border-border bg-card px-4 md:px-6 flex items-center justify-between sticky top-0 z-10">
-      <div className="hidden md:block">
-        <h2 className="text-xl font-bold text-foreground">AI Code Generator</h2>
-        <p className="text-sm text-muted-foreground">Transform requests into safe code changes</p>
-      </div>
-      
-      <div className="md:hidden">
-        <h2 className="text-lg font-bold text-foreground">CodeGen AI</h2>
+      <div className="flex items-center gap-3">
+        <MobileNav />
+        
+        <div className="hidden md:block">
+          <h2 className="text-xl font-bold text-foreground">AI Code Generator</h2>
+          <p className="text-sm text-muted-foreground">Transform requests into safe code changes</p>
+        </div>
+        
+        <div className="md:hidden">
+          <h2 className="text-lg font-bold text-foreground">CodeGen AI</h2>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
