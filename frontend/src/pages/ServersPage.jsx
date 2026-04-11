@@ -16,11 +16,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const serverTypeIcons = {
   ftp: '📁',
@@ -58,7 +55,7 @@ export const ServersPage = () => {
 
   const fetchServers = async () => {
     try {
-      const response = await axios.get(`${API}/servers`);
+      const response = await apiClient.get(`/servers`);
       setServers(response.data);
     } catch (error) {
       console.error('Error fetching servers:', error);
@@ -78,10 +75,10 @@ export const ServersPage = () => {
       };
 
       if (editingServer) {
-        await axios.patch(`${API}/servers/${editingServer.id}`, payload);
+        await apiClient.patch(`/servers/${editingServer.id}`, payload);
         toast.success('Server updated');
       } else {
-        await axios.post(`${API}/servers`, payload);
+        await apiClient.post(`/servers`, payload);
         toast.success('Server added');
       }
 
@@ -115,7 +112,7 @@ export const ServersPage = () => {
     if (!window.confirm('Are you sure you want to delete this server?')) return;
     
     try {
-      await axios.delete(`${API}/servers/${id}`);
+      await apiClient.delete(`/servers/${id}`);
       toast.success('Server deleted');
       fetchServers();
     } catch (error) {
@@ -127,7 +124,7 @@ export const ServersPage = () => {
   const handleTestConnection = async (serverId) => {
     setTestingServer(serverId);
     try {
-      const response = await axios.post(`${API}/servers/${serverId}/test`);
+      const response = await apiClient.post(`/servers/${serverId}/test`);
       if (response.data.success) {
         toast.success('Connection successful!');
         fetchServers(); // Refresh to get updated last_connected

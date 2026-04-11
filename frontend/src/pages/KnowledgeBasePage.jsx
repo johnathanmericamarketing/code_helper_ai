@@ -18,11 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/contexts/ThemeContext';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const categoryIcons = {
   code_style: Code,
@@ -71,7 +68,7 @@ export const KnowledgeBasePage = () => {
 
   const fetchKnowledge = async () => {
     try {
-      const response = await axios.get(`${API}/knowledge-base`);
+      const response = await apiClient.get(`/knowledge-base`);
       setKnowledge(response.data);
     } catch (error) {
       console.error('Error fetching knowledge:', error);
@@ -92,10 +89,10 @@ export const KnowledgeBasePage = () => {
       };
 
       if (editingItem) {
-        await axios.patch(`${API}/knowledge-base/${editingItem.id}`, payload);
+        await apiClient.patch(`/knowledge-base/${editingItem.id}`, payload);
         toast.success('Knowledge updated');
       } else {
-        await axios.post(`${API}/knowledge-base`, payload);
+        await apiClient.post(`/knowledge-base`, payload);
         toast.success('Knowledge added');
       }
 
@@ -129,7 +126,7 @@ export const KnowledgeBasePage = () => {
     if (!window.confirm('Are you sure you want to delete this knowledge?')) return;
     
     try {
-      await axios.delete(`${API}/knowledge-base/${id}`);
+      await apiClient.delete(`/knowledge-base/${id}`);
       toast.success('Knowledge deleted');
       fetchKnowledge();
     } catch (error) {
