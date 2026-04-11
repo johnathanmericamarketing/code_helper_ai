@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Send, Sparkles } from 'lucide-react';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const RequestForm = ({ onRequestCreated }) => {
   const [formData, setFormData] = useState({
@@ -31,7 +28,7 @@ export const RequestForm = ({ onRequestCreated }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/requests`, formData);
+      const response = await apiClient.post(`/requests`, formData);
       toast.success('Request submitted successfully!');
       setFormData({ raw_request: '', urgency: 'medium', area_of_app: '' });
       if (onRequestCreated) {

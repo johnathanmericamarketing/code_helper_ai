@@ -5,11 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { History as HistoryIcon, Search, Filter } from 'lucide-react';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const HistoryPage = () => {
   const navigate = useNavigate();
@@ -24,7 +21,7 @@ export const HistoryPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`${API}/requests`);
+      const response = await apiClient.get(`/requests`);
       setRequests(response.data);
     } catch (error) {
       console.error('Error fetching requests:', error);
