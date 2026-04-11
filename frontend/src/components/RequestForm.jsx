@@ -36,7 +36,7 @@ export const RequestForm = ({ onRequestCreated }) => {
       }
     } catch (error) {
       console.error('Error creating request:', error);
-      toast.error('Failed to submit request');
+      toast.error(error.userMessage || 'Failed to submit request');
     } finally {
       setLoading(false);
     }
