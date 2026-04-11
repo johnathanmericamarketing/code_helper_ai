@@ -5,11 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, FileCode2, TrendingUp, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { DashboardCharts } from '@/components/DashboardCharts';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
@@ -22,7 +19,7 @@ export const DashboardPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`${API}/requests`);
+      const response = await apiClient.get(`/requests`);
       setRequests(response.data);
     } catch (error) {
       console.error('Error fetching requests:', error);

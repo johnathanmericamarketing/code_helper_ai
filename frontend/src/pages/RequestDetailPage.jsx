@@ -12,11 +12,8 @@ import { DeploymentDialog } from '@/components/DeploymentDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Play, CheckCircle, XCircle, Download, FileCode, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const RequestDetailPage = () => {
   const { id } = useParams();
@@ -33,7 +30,7 @@ export const RequestDetailPage = () => {
 
   const fetchRequest = async () => {
     try {
-      const response = await axios.get(`${API}/requests/${id}`);
+      const response = await apiClient.get(`/requests/${id}`);
       setRequest(response.data);
       
       // Map status to step
@@ -62,7 +59,7 @@ export const RequestDetailPage = () => {
 
   const fetchGeneratedCode = async () => {
     try {
-      const response = await axios.get(`${API}/generated-code/request/${id}`);
+      const response = await apiClient.get(`/generated-code/request/${id}`);
       if (response.data.length > 0) {
         setGeneratedData(response.data[0]);
       }
@@ -74,44 +71,10 @@ export const RequestDetailPage = () => {
   const processRequest = async () => {
     setProcessing(true);
     try {
-      // Simulate AI processing through all steps
-      toast.info('AI is analyzing your request...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update to structured
-      await axios.patch(`${API}/requests/${id}/status`, null, { params: { status: 'structured' } });
-      setCurrentStep(2);
-      setRequest({ ...request, status: 'structured' });
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.info('Creating execution plan...');
-      
-      // Update to planned
-      await axios.patch(`${API}/requests/${id}/status`, null, { params: { status: 'planned' } });
-      setCurrentStep(3);
-      setRequest({ ...request, status: 'planned' });
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.info('Generating code...');
-      
-      // Generate mock data and save
-      const mockGeneratedCode = createMockGeneratedCode();
-      const saveResponse = await axios.post(`${API}/generated-code`, mockGeneratedCode);
-      setGeneratedData(saveResponse.data);
-      
-      // Update to generated
-      await axios.patch(`${API}/requests/${id}/status`, null, { params: { status: 'generated' } });
-      setCurrentStep(4);
-      setRequest({ ...request, status: 'generated' });
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.info('Running validation checks...');
-      
-      // Update to validated
-      await axios.patch(`${API}/requests/${id}/status`, null, { params: { status: 'validated' } });
-      setCurrentStep(5);
-      setRequest({ ...request, status: 'validated' });
-      
+      toast.info('AI processing started...');
+      const response = await apiClient.post(`/requests/${id}/process`);
+      setGeneratedData(response.data.generated_code);
+      await fetchRequest();
       toast.success('Code generation complete! Ready for review.');
     } catch (error) {
       console.error('Error processing request:', error);
@@ -121,83 +84,9 @@ export const RequestDetailPage = () => {
     }
   };
 
-  const createMockGeneratedCode = () => {
-    return {
-      request_id: id,
-      structured_task: {
-        task_type: 'feature',
-        title: 'Implement requested feature',
-        context: request.raw_request,
-        expected_behavior: 'Feature should work as described in the request',
-        acceptance_criteria: [
-          'Code compiles without errors',
-          'Feature functions as expected',
-          'Tests pass successfully',
-        ],
-        technical_notes: [
-          'Follow existing code patterns',
-          'Maintain backward compatibility',
-        ],
-        assumptions: [
-          'Current codebase is stable',
-          'Dependencies are up to date',
-        ],
-      },
-      execution_plan: {
-        files_to_modify: ['src/components/Feature.jsx', 'src/utils/helpers.js'],
-        files_to_avoid: ['src/core/config.js', 'src/auth/*'],
-        risk_level: 'low',
-        change_scope_summary: 'Isolated changes to feature components only',
-      },
-      code_changes: [
-        {
-          file_path: 'src/components/Feature.jsx',
-          diff: `import React, { useState } from 'react';\n\nconst Feature = () => {\n  const [data, setData] = useState(null);\n  \n  const handleAction = () => {\n    // New feature implementation\n    console.log('Feature activated');\n  };\n  \n  return (\n    <div className="feature-container">\n      <button onClick={handleAction}>\n        Activate Feature\n      </button>\n    </div>\n  );\n};\n\nexport default Feature;`,
-          description: 'Added new feature component with action handler',
-        },
-        {
-          file_path: 'src/utils/helpers.js',
-          diff: `export const validateInput = (input) => {\n  return input && input.length > 0;\n};\n\nexport const formatOutput = (data) => {\n  return JSON.stringify(data, null, 2);\n};`,
-          description: 'Added utility functions for input validation and output formatting',
-        },
-      ],
-      validation_checks: [
-        {
-          check_name: 'Scope Validation',
-          result: 'passed',
-          message: 'All changes are within allowed files',
-          details: 'No modifications detected outside the planned scope',
-        },
-        {
-          check_name: 'Syntax Check',
-          result: 'passed',
-          message: 'All code is syntactically correct',
-        },
-        {
-          check_name: 'Dependency Check',
-          result: 'passed',
-          message: 'No new dependencies required',
-        },
-        {
-          check_name: 'Breaking Changes',
-          result: 'passed',
-          message: 'No breaking changes detected',
-        },
-        {
-          check_name: 'Test Coverage',
-          result: 'warning',
-          message: 'Consider adding unit tests',
-          details: 'New feature code does not have associated tests',
-        },
-      ],
-      summary: 'Successfully generated code for the requested feature. All validation checks passed with one warning.',
-      rollback_instructions: 'Run `git checkout HEAD~1` to revert changes if needed.',
-    };
-  };
-
   const handleApprove = async () => {
     try {
-      await axios.patch(`${API}/requests/${id}/status`, null, { params: { status: 'approved' } });
+      await apiClient.patch(`/requests/${id}/status`, null, { params: { status: 'approved' } });
       setRequest({ ...request, status: 'approved' });
       setCurrentStep(6);
       toast.success('Code changes approved!');
@@ -209,7 +98,7 @@ export const RequestDetailPage = () => {
 
   const handleReject = async () => {
     try {
-      await axios.patch(`${API}/requests/${id}/status`, null, { params: { status: 'rejected' } });
+      await apiClient.patch(`/requests/${id}/status`, null, { params: { status: 'rejected' } });
       setRequest({ ...request, status: 'rejected' });
       setCurrentStep(6);
       toast.error('Code changes rejected');
