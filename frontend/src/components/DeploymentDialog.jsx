@@ -14,11 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Server, Upload, CheckCircle, AlertTriangle, Rocket } from 'lucide-react';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const DeploymentDialog = ({ requestId, codeChanges, onDeploySuccess, triggerButton }) => {
   const [open, setOpen] = useState(false);
@@ -39,7 +36,7 @@ export const DeploymentDialog = ({ requestId, codeChanges, onDeploySuccess, trig
   const fetchServers = async () => {
     setLoadingServers(true);
     try {
-      const response = await axios.get(`${API}/servers`);
+      const response = await apiClient.get(`/servers`);
       const activeServers = response.data.filter(s => s.is_active);
       setServers(activeServers);
       if (activeServers.length > 0) {
@@ -66,7 +63,7 @@ export const DeploymentDialog = ({ requestId, codeChanges, onDeploySuccess, trig
 
     setDeploying(true);
     try {
-      const response = await axios.post(`${API}/deploy`, {
+      const response = await apiClient.post(`/deploy`, {
         request_id: requestId,
         server_id: selectedServer,
         files_to_deploy: selectedFiles,
