@@ -51,7 +51,7 @@ export const RequestDetailPage = () => {
       }
     } catch (error) {
       console.error('Error fetching request:', error);
-      toast.error('Failed to load request');
+      toast.error(error.userMessage || 'Failed to load request');
     } finally {
       setLoading(false);
     }
@@ -78,7 +78,7 @@ export const RequestDetailPage = () => {
       toast.success('Code generation complete! Ready for review.');
     } catch (error) {
       console.error('Error processing request:', error);
-      toast.error('Processing failed');
+      toast.error(error.userMessage || 'Processing failed');
     } finally {
       setProcessing(false);
     }
@@ -92,7 +92,7 @@ export const RequestDetailPage = () => {
       toast.success('Code changes approved!');
     } catch (error) {
       console.error('Error approving request:', error);
-      toast.error('Failed to approve');
+      toast.error(error.userMessage || 'Failed to approve');
     }
   };
 
@@ -104,7 +104,7 @@ export const RequestDetailPage = () => {
       toast.error('Code changes rejected');
     } catch (error) {
       console.error('Error rejecting request:', error);
-      toast.error('Failed to reject');
+      toast.error(error.userMessage || 'Failed to reject');
     }
   };
 
