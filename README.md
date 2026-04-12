@@ -63,3 +63,14 @@ Backend:
 Frontend:
 - `REACT_APP_BACKEND_URL`
 - `REACT_APP_API_KEY`
+
+## Netlify deployment notes
+
+If you deploy this SPA to Netlify and see **“Page not found”** on app routes:
+
+- `netlify.toml` is configured to build from `frontend/` and publish `frontend/build`.
+- SPA fallback redirects are configured in both:
+  - `netlify.toml` redirects (`/* -> /index.html 200`)
+  - `frontend/public/_redirects` (`/* /index.html 200`)
+
+This ensures direct navigation to routes like `/history` or `/request/:id` resolves correctly.
