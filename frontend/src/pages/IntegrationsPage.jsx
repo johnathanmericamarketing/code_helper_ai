@@ -16,11 +16,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const IntegrationsPage = () => {
   const [githubConnections, setGithubConnections] = useState([]);
@@ -49,8 +46,8 @@ export const IntegrationsPage = () => {
   const fetchAll = async () => {
     try {
       const [githubResp, workspaceResp] = await Promise.all([
-        axios.get(`${API}/github`),
-        axios.get(`${API}/workspace`),
+        apiClient.get(`/github`),
+        apiClient.get(`/workspace`),
       ]);
       setGithubConnections(githubResp.data);
       setWorkspaces(workspaceResp.data);
@@ -65,7 +62,7 @@ export const IntegrationsPage = () => {
   const handleGithubSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/github`, githubForm);
+      await apiClient.post(`/github`, githubForm);
       toast.success('GitHub connected successfully!');
       setGithubDialogOpen(false);
       setGithubForm({ name: '', access_token: '', default_repo: '', default_branch: 'main' });
@@ -79,7 +76,7 @@ export const IntegrationsPage = () => {
   const handleWorkspaceSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/workspace`, workspaceForm);
+      await apiClient.post(`/workspace`, workspaceForm);
       toast.success('Workspace added successfully!');
       setWorkspaceDialogOpen(false);
       setWorkspaceForm({ name: '', path: '', description: '' });
@@ -93,7 +90,7 @@ export const IntegrationsPage = () => {
   const handleDeleteGithub = async (id) => {
     if (!window.confirm('Remove this GitHub connection?')) return;
     try {
-      await axios.delete(`${API}/github/${id}`);
+      await apiClient.delete(`/github/${id}`);
       toast.success('GitHub connection removed');
       fetchAll();
     } catch (error) {
@@ -105,7 +102,7 @@ export const IntegrationsPage = () => {
   const handleDeleteWorkspace = async (id) => {
     if (!window.confirm('Remove this workspace?')) return;
     try {
-      await axios.delete(`${API}/workspace/${id}`);
+      await apiClient.delete(`/workspace/${id}`);
       toast.success('Workspace removed');
       fetchAll();
     } catch (error) {

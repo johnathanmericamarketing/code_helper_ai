@@ -12,17 +12,15 @@ import { ServersPage } from "@/pages/ServersPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import axios from "axios";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { apiClient } from "@/lib/api";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 function App() {
   useEffect(() => {
     // Test backend connection
     const testConnection = async () => {
       try {
-        const response = await axios.get(`${API}/`);
+        const response = await apiClient.get(`/`);
         console.log('Backend connected:', response.data.message);
       } catch (error) {
         console.error('Backend connection error:', error);
@@ -32,25 +30,27 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <div className="App">
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="create" element={<CreateRequestPage />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="request/:id" element={<RequestDetailPage />} />
-              <Route path="knowledge" element={<KnowledgeBasePage />} />
-              <Route path="integrations" element={<IntegrationsPage />} />
-              <Route path="servers" element={<ServersPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-        <Toaster position="top-right" richColors />
-      </div>
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <div className="App">
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="create" element={<CreateRequestPage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="request/:id" element={<RequestDetailPage />} />
+                <Route path="knowledge" element={<KnowledgeBasePage />} />
+                <Route path="integrations" element={<IntegrationsPage />} />
+                <Route path="servers" element={<ServersPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+          <Toaster position="top-right" richColors />
+        </div>
+      </ThemeProvider>
+    </AppErrorBoundary>
   );
 }
 
