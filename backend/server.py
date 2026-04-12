@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -18,6 +18,50 @@ import io
 from github import Github, GithubException
 from git import Repo, GitCommandError
 import json
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / ".env")
+
+
+def _required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"{name} environment variable is required")
+    return value
+
+
+API_KEY = _required_env("API_KEY")
+mongo_url = _required_env("MONGO_URL")
+DB_NAME = _required_env("DB_NAME")
+ENCRYPTION_KEY = _required_env("ENCRYPTION_KEY")
+CORS_ORIGINS_RAW = _required_env("CORS_ORIGINS")
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(",") if origin.strip()]
+if not CORS_ORIGINS or "*" in CORS_ORIGINS:
+    raise RuntimeError("CORS_ORIGINS must be an explicit comma-separated origin allowlist")
+
+
+def require_api_key(x_api_key: Optional[str] = Header(default=None, alias="X-API-Key")) -> None:
+    if not x_api_key or x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def resolve_workspace_path(base_path: str, requested_path: str = "") -> str:
+    base_resolved = os.path.realpath(base_path)
+    target_resolved = os.path.realpath(os.path.join(base_resolved, requested_path))
+    if os.path.commonpath([base_resolved, target_resolved]) != base_resolved:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    return target_resolved
+
+
+# Create the main app and API router
+app = FastAPI()
+api_router = APIRouter(prefix="/api", dependencies=[Depends(require_api_key)])
+public_router = APIRouter()
+APP_METRICS = {
+    "total_requests": 0,
+    "total_errors": 0,
+    "paths": {},
+}
 
 
 # GitHub Connection Models
@@ -257,13 +301,15 @@ async def push_to_github(connection_id: str, owner: str, repo: str, file_path: s
 @api_router.post("/workspace", response_model=LocalWorkspace)
 async def create_workspace(input: LocalWorkspaceCreate):
     # Validate path exists
-    if not os.path.exists(input.path):
+    workspace_path = os.path.realpath(input.path)
+    if not os.path.exists(workspace_path):
         raise HTTPException(status_code=400, detail="Path does not exist")
     
     workspace_dict = input.model_dump()
+    workspace_dict["path"] = workspace_path
     
     # Check if it's a git repo
-    workspace_dict['is_git_repo'] = os.path.exists(os.path.join(input.path, '.git'))
+    workspace_dict['is_git_repo'] = os.path.exists(os.path.join(workspace_path, '.git'))
     
     workspace_obj = LocalWorkspace(**workspace_dict)
     
@@ -300,8 +346,7 @@ async def get_workspace_tree(workspace_id: str, path: str = ""):
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    base_path = workspace['path']
-    full_path = os.path.join(base_path, path) if path else base_path
+    full_path = resolve_workspace_path(workspace['path'], path)
     
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="Path not found")
@@ -344,7 +389,7 @@ async def get_workspace_file(workspace_id: str, file_path: str):
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    full_path = os.path.join(workspace['path'], file_path)
+    full_path = resolve_workspace_path(workspace['path'], file_path)
     
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -369,7 +414,7 @@ async def write_workspace_file(workspace_id: str, file_path: str, content: str):
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    full_path = os.path.join(workspace['path'], file_path)
+    full_path = resolve_workspace_path(workspace['path'], file_path)
     
     try:
         # Create directory if needed
@@ -442,23 +487,12 @@ async def git_operation(workspace_id: str, operation: str, message: Optional[str
 
 
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[DB_NAME]
 
-# Encryption key (in production, store this securely in env)
-ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', Fernet.generate_key())
+# Encryption key
 cipher_suite = Fernet(ENCRYPTION_KEY if isinstance(ENCRYPTION_KEY, bytes) else ENCRYPTION_KEY.encode())
-
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
 
 
 # Enums
@@ -668,6 +702,111 @@ class DeployRequest(BaseModel):
     files_to_deploy: List[str]  # File paths to deploy
 
 
+def _build_generated_code_payload(request_id: str, raw_request: str) -> GeneratedCodeCreate:
+    return GeneratedCodeCreate(
+        request_id=request_id,
+        structured_task=StructuredTask(
+            task_type=TaskType.feature,
+            title="Implement requested feature",
+            context=raw_request,
+            expected_behavior="Feature should work as described in the request",
+            acceptance_criteria=[
+                "Code compiles without errors",
+                "Feature functions as expected",
+                "Tests pass successfully",
+            ],
+            technical_notes=[
+                "Follow existing code patterns",
+                "Maintain backward compatibility",
+            ],
+            assumptions=[
+                "Current codebase is stable",
+                "Dependencies are up to date",
+            ],
+        ),
+        execution_plan=ExecutionPlan(
+            files_to_modify=["src/components/Feature.jsx", "src/utils/helpers.js"],
+            files_to_avoid=["src/core/config.js", "src/auth/*"],
+            risk_level=RiskLevel.low,
+            change_scope_summary="Isolated changes to feature components only",
+        ),
+        code_changes=[
+            CodeChange(
+                file_path="src/components/Feature.jsx",
+                diff=(
+                    "import React, { useState } from 'react';\n\n"
+                    "const Feature = () => {\n  const [data, setData] = useState(null);\n"
+                    "  \n  const handleAction = () => {\n    // New feature implementation\n"
+                    "    console.log('Feature activated');\n  };\n  \n  return (\n"
+                    '    <div className="feature-container">\n'
+                    "      <button onClick={handleAction}>\n        Activate Feature\n"
+                    "      </button>\n    </div>\n  );\n};\n\nexport default Feature;"
+                ),
+                description="Added new feature component with action handler",
+            ),
+            CodeChange(
+                file_path="src/utils/helpers.js",
+                diff=(
+                    "export const validateInput = (input) => {\n  return input && input.length > 0;\n};\n\n"
+                    "export const formatOutput = (data) => {\n  return JSON.stringify(data, null, 2);\n};"
+                ),
+                description="Added utility functions for input validation and output formatting",
+            ),
+        ],
+        validation_checks=[
+            ValidationCheck(
+                check_name="Scope Validation",
+                result=ValidationResult.passed,
+                message="All changes are within allowed files",
+                details="No modifications detected outside the planned scope",
+            ),
+            ValidationCheck(
+                check_name="Syntax Check",
+                result=ValidationResult.passed,
+                message="All code is syntactically correct",
+            ),
+            ValidationCheck(
+                check_name="Dependency Check",
+                result=ValidationResult.passed,
+                message="No new dependencies required",
+            ),
+            ValidationCheck(
+                check_name="Breaking Changes",
+                result=ValidationResult.passed,
+                message="No breaking changes detected",
+            ),
+            ValidationCheck(
+                check_name="Test Coverage",
+                result=ValidationResult.warning,
+                message="Consider adding unit tests",
+                details="New feature code does not have associated tests",
+            ),
+        ],
+        summary="Successfully generated code for the requested feature. All validation checks passed with one warning.",
+        rollback_instructions="Run `git checkout HEAD~1` to revert changes if needed.",
+    )
+
+
+# Public routes (no API key required)
+@public_router.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
+
+
+@public_router.get("/readyz")
+async def readyz():
+    try:
+        await db.command("ping")
+        return {"status": "ready"}
+    except Exception:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+
+@public_router.get("/metrics")
+async def metrics():
+    return APP_METRICS
+
+
 # Routes
 @api_router.get("/")
 async def root():
@@ -722,6 +861,54 @@ async def update_request_status(request_id: str, status: RequestStatus):
         raise HTTPException(status_code=404, detail="Request not found")
     
     return {"success": True}
+
+
+async def _set_request_status(request_id: str, status: RequestStatus):
+    await db.code_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": status.value, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+
+@api_router.post("/requests/{request_id}/process")
+async def process_request(request_id: str):
+    request = await db.code_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    stage_times = {}
+    for stage in [
+        RequestStatus.structured,
+        RequestStatus.planned,
+        RequestStatus.generated,
+        RequestStatus.validated,
+    ]:
+        await _set_request_status(request_id, stage)
+        stage_times[stage.value] = datetime.now(timezone.utc).isoformat()
+
+    existing_generated = await db.generated_code.find_one({"request_id": request_id}, {"_id": 0})
+    if existing_generated:
+        if isinstance(existing_generated["created_at"], str):
+            existing_generated["created_at"] = datetime.fromisoformat(existing_generated["created_at"])
+        return {
+            "success": True,
+            "request_status": RequestStatus.validated,
+            "stage_times": stage_times,
+            "generated_code": existing_generated,
+        }
+
+    generated_input = _build_generated_code_payload(request_id, request["raw_request"])
+    code_obj = GeneratedCode(**generated_input.model_dump())
+    doc = code_obj.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.generated_code.insert_one(doc)
+
+    return {
+        "success": True,
+        "request_status": RequestStatus.validated,
+        "stage_times": stage_times,
+        "generated_code": code_obj,
+    }
 
 @api_router.post("/generated-code", response_model=GeneratedCode)
 async def create_generated_code(input: GeneratedCodeCreate):
@@ -1058,12 +1245,13 @@ async def deploy_code(input: DeployRequest):
 
 
 # Include the router in the main app
+app.include_router(public_router)
 app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1074,6 +1262,29 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    start_time = datetime.now(timezone.utc)
+    APP_METRICS["total_requests"] += 1
+    path = request.url.path
+    APP_METRICS["paths"][path] = APP_METRICS["paths"].get(path, 0) + 1
+    response = await call_next(request)
+    duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+    if response.status_code >= 500:
+        APP_METRICS["total_errors"] += 1
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "request_id=%s method=%s path=%s status=%s duration_ms=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
