@@ -24,10 +24,6 @@ export const RequestDetailPage = () => {
   const [generatedData, setGeneratedData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchRequest();
-  }, [id]);
-
   const fetchRequest = async () => {
     try {
       const response = await apiClient.get(`/requests/${id}`);
@@ -56,6 +52,11 @@ export const RequestDetailPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const fetchGeneratedCode = async () => {
     try {
