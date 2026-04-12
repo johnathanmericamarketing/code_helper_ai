@@ -66,6 +66,7 @@ export const VisualInspector = () => {
 
     const onClick = (event) => {
       if (panelRef.current?.contains(event.target)) return;
+      if (!event.altKey) return;
       event.preventDefault();
       event.stopPropagation();
 
@@ -142,7 +143,7 @@ export const VisualInspector = () => {
                 </Button>
               </div>
               <CardDescription>
-                Click images, text, or buttons to inspect selector/class and get styling recommendations.
+                Hold <strong>Alt</strong> and click images, text, or buttons to inspect selector/class and get styling recommendations.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -178,7 +179,7 @@ export const VisualInspector = () => {
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Inspector is active. Click any element in the page to analyze it.
+                  Inspector is active. Hold Alt and click any element in the page to analyze it.
                 </p>
               )}
             </CardContent>
@@ -188,4 +189,3 @@ export const VisualInspector = () => {
     </>
   );
 };
-

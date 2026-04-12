@@ -57,6 +57,11 @@ def resolve_workspace_path(base_path: str, requested_path: str = "") -> str:
 app = FastAPI()
 api_router = APIRouter(prefix="/api", dependencies=[Depends(require_api_key)])
 public_router = APIRouter()
+APP_METRICS = {
+    "total_requests": 0,
+    "total_errors": 0,
+    "paths": {},
+}
 
 
 # GitHub Connection Models
@@ -797,6 +802,11 @@ async def readyz():
         raise HTTPException(status_code=503, detail="Database unavailable")
 
 
+@public_router.get("/metrics")
+async def metrics():
+    return APP_METRICS
+
+
 # Routes
 @api_router.get("/")
 async def root():
@@ -853,22 +863,39 @@ async def update_request_status(request_id: str, status: RequestStatus):
     return {"success": True}
 
 
+async def _set_request_status(request_id: str, status: RequestStatus):
+    await db.code_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": status.value, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+
 @api_router.post("/requests/{request_id}/process")
 async def process_request(request_id: str):
     request = await db.code_requests.find_one({"id": request_id}, {"_id": 0})
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    await db.code_requests.update_one(
-        {"id": request_id},
-        {"$set": {"status": RequestStatus.validated.value, "updated_at": datetime.now(timezone.utc).isoformat()}},
-    )
+    stage_times = {}
+    for stage in [
+        RequestStatus.structured,
+        RequestStatus.planned,
+        RequestStatus.generated,
+        RequestStatus.validated,
+    ]:
+        await _set_request_status(request_id, stage)
+        stage_times[stage.value] = datetime.now(timezone.utc).isoformat()
 
     existing_generated = await db.generated_code.find_one({"request_id": request_id}, {"_id": 0})
     if existing_generated:
         if isinstance(existing_generated["created_at"], str):
             existing_generated["created_at"] = datetime.fromisoformat(existing_generated["created_at"])
-        return {"success": True, "request_status": RequestStatus.validated, "generated_code": existing_generated}
+        return {
+            "success": True,
+            "request_status": RequestStatus.validated,
+            "stage_times": stage_times,
+            "generated_code": existing_generated,
+        }
 
     generated_input = _build_generated_code_payload(request_id, request["raw_request"])
     code_obj = GeneratedCode(**generated_input.model_dump())
@@ -876,7 +903,12 @@ async def process_request(request_id: str):
     doc["created_at"] = doc["created_at"].isoformat()
     await db.generated_code.insert_one(doc)
 
-    return {"success": True, "request_status": RequestStatus.validated, "generated_code": code_obj}
+    return {
+        "success": True,
+        "request_status": RequestStatus.validated,
+        "stage_times": stage_times,
+        "generated_code": code_obj,
+    }
 
 @api_router.post("/generated-code", response_model=GeneratedCode)
 async def create_generated_code(input: GeneratedCodeCreate):
@@ -1236,8 +1268,13 @@ logger = logging.getLogger(__name__)
 async def request_logging_middleware(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     start_time = datetime.now(timezone.utc)
+    APP_METRICS["total_requests"] += 1
+    path = request.url.path
+    APP_METRICS["paths"][path] = APP_METRICS["paths"].get(path, 0) + 1
     response = await call_next(request)
     duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+    if response.status_code >= 500:
+        APP_METRICS["total_errors"] += 1
     response.headers["X-Request-ID"] = request_id
     logger.info(
         "request_id=%s method=%s path=%s status=%s duration_ms=%s",

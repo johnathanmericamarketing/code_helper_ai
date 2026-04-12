@@ -58,3 +58,11 @@ async def test_readyz_when_db_available(server_module, monkeypatch):
     monkeypatch.setattr(server_module, "db", FakeDB())
     payload = await server_module.readyz()
     assert payload["status"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_metrics_payload_shape(server_module):
+    payload = await server_module.metrics()
+    assert "total_requests" in payload
+    assert "total_errors" in payload
+    assert "paths" in payload

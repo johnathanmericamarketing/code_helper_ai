@@ -42,6 +42,14 @@ This repository contains a full-stack AI code request workflow:
   - dimensions,
   - basic computed style values.
 - The inspector provides immediate recommendations (e.g., image sizing, text readability, spacing) and can copy a structured prompt for follow-up change requests.
+- Inspector is now safer for normal usage: it only captures when you **hold Alt + click**, so normal clicks/navigation keep working.
+
+## Stability program (A → D)
+
+- **Phase A:** Added frontend error boundary + GET retry support + safer inspector click mode.
+- **Phase B:** Request processing now records staged transitions (`structured → planned → generated → validated`) with timestamps.
+- **Phase C:** Existing backend test baseline retained and extended for operational routes.
+- **Phase D:** Added lightweight metrics endpoint `GET /metrics` backed by request middleware counters.
 
 ## Environment variables
 
