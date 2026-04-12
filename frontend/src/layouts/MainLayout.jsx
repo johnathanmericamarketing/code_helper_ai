@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { VisualInspector } from '@/components/VisualInspector';
 
 export const MainLayout = () => {
   return (
@@ -14,6 +15,7 @@ export const MainLayout = () => {
             <Outlet />
           </div>
         </main>
+        <VisualInspector />
       </div>
     </div>
   );
