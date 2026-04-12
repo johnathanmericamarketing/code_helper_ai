@@ -13,7 +13,19 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config || {};
+    const shouldRetry =
+      originalRequest.method?.toLowerCase() === "get" &&
+      !originalRequest.__retried &&
+      (error.code === "ECONNABORTED" || !error.response || (error.response.status >= 500 && error.response.status < 600));
+
+    if (shouldRetry) {
+      originalRequest.__retried = true;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return apiClient(originalRequest);
+    }
+
     if (error.code === "ECONNABORTED") {
       error.userMessage = "Request timed out. Please try again.";
     } else if (!error.response) {

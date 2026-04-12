@@ -40,3 +40,29 @@ def test_require_api_key_rejects_invalid_key(server_module):
 
 def test_require_api_key_accepts_valid_key(server_module):
     assert server_module.require_api_key("test-api-key") is None
+
+
+@pytest.mark.asyncio
+async def test_healthz(server_module):
+    payload = await server_module.healthz()
+    assert payload["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_readyz_when_db_available(server_module, monkeypatch):
+    class FakeDB:
+        async def command(self, command_name):
+            assert command_name == "ping"
+            return {"ok": 1}
+
+    monkeypatch.setattr(server_module, "db", FakeDB())
+    payload = await server_module.readyz()
+    assert payload["status"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_metrics_payload_shape(server_module):
+    payload = await server_module.metrics()
+    assert "total_requests" in payload
+    assert "total_errors" in payload
+    assert "paths" in payload
