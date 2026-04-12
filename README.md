@@ -74,3 +74,14 @@ If you deploy this SPA to Netlify and see **“Page not found”** on app routes
   - `frontend/public/_redirects` (`/* /index.html 200`)
 
 This ensures direct navigation to routes like `/history` or `/request/:id` resolves correctly.
+
+If the custom domain returns **503 Service Unavailable**:
+
+1. Open Netlify deploys and confirm the latest deploy is green (successful).
+2. Verify this repo contains `netlify.toml` and it is merged into the deployed branch.
+3. Confirm the Netlify site is linked to the correct GitHub repo/branch.
+4. Re-run deploy after setting required frontend env vars in Netlify:
+   - `REACT_APP_BACKEND_URL`
+   - `REACT_APP_API_KEY`
+
+This repository sets `CI=false` and `NODE_VERSION=20` in Netlify config to reduce CRA warning-related build failures on Netlify CI.
