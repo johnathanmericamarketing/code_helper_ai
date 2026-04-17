@@ -318,16 +318,16 @@ export const SettingsPage = () => {
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={async () => {
-                   try {
-                     setSaving(true);
-                     await updateUserProfile({ display_name: document.getElementById('display_name').value });
-                     import('firebase/auth').then(({ updateProfile }) => updateProfile(auth.currentUser, { displayName: document.getElementById('display_name').value }));
-                     toast.success('Profile updated successfully');
-                   } catch(e) {
-                     toast.error('Failed to update profile');
-                   } finally {
-                     setSaving(false);
-                   }
+                  try {
+                    setSaving(true);
+                    await updateUserProfile({ display_name: document.getElementById('display_name').value });
+                    import('firebase/auth').then(({ updateProfile }) => updateProfile(auth.currentUser, { displayName: document.getElementById('display_name').value }));
+                    toast.success('Profile updated successfully');
+                  } catch (e) {
+                    toast.error('Failed to update profile');
+                  } finally {
+                    setSaving(false);
+                  }
                 }} disabled={saving}>
                   <Save className="w-4 h-4 mr-2" /> Save Profile
                 </Button>
@@ -336,10 +336,10 @@ export const SettingsPage = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Display Name</Label>
-                <Input 
-                  id="display_name" 
-                  defaultValue={auth.currentUser?.displayName || profile?.display_name || ''} 
-                  placeholder="Your Name" 
+                <Input
+                  id="display_name"
+                  defaultValue={auth.currentUser?.displayName || profile?.display_name || ''}
+                  placeholder="Your Name"
                 />
               </div>
               <div className="space-y-2">
@@ -482,13 +482,13 @@ export const SettingsPage = () => {
                   <Save className="w-4 h-4" />
                   Save API Key
                 </Button>
-                { (profile?.ai_api_key || profile?.claude_api_key) && (
+                {(profile?.ai_api_key || profile?.claude_api_key) && (
                   <Button variant="outline" onClick={handleRemoveApiKey} disabled={saving}>
                     Remove Key
                   </Button>
                 )}
               </div>
-              { (profile?.ai_api_key || profile?.claude_api_key) && (
+              {(profile?.ai_api_key || profile?.claude_api_key) && (
                 <div className="flex items-center gap-2 text-sm text-success">
                   <CheckCircle className="w-4 h-4" />
                   API key configured — BYOK plan active
@@ -507,16 +507,14 @@ export const SettingsPage = () => {
                 {CLAUDE_MODELS.map(model => (
                   <div
                     key={model.id}
-                    className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${
-                      selectedModel === model.id
+                    className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${selectedModel === model.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-muted-foreground'
-                    }`}
+                      }`}
                     onClick={() => setSelectedModel(model.id)}
                   >
-                    <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex-shrink-0 ${
-                      selectedModel === model.id ? 'border-primary bg-primary' : 'border-muted-foreground'
-                    }`} />
+                    <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex-shrink-0 ${selectedModel === model.id ? 'border-primary bg-primary' : 'border-muted-foreground'
+                      }`} />
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-foreground">{model.name}</p>
@@ -658,15 +656,15 @@ export const SettingsPage = () => {
                         }
                       }}
                     >
-                      {saving && plan.id === 'platform' 
-                        ? <div className="w-4 h-4 rounded-full border-2 border-foreground border-t-transparent animate-spin mr-2" /> 
+                      {saving && plan.id === 'platform'
+                        ? <div className="w-4 h-4 rounded-full border-2 border-foreground border-t-transparent animate-spin mr-2" />
                         : null}
                       Switch to {plan.name}
                     </Button>
                   )}
                   {activePlan.id === plan.id && plan.id === 'platform' && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full gap-2"
                       disabled={saving}
                       onClick={handleStripePortal}

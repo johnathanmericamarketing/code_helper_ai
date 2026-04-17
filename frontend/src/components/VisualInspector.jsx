@@ -1,191 +1,228 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Wand2, MousePointerClick, Copy, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MousePointer2, ImagePlus, Loader2, Maximize } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateImage } from '@/lib/media-service';
 
-const getSelector = (el) => {
-  if (!el) return '';
-  if (el.id) return `#${el.id}`;
-  if (el.classList?.length) return `.${Array.from(el.classList).slice(0, 3).join('.')}`;
-  return el.tagName?.toLowerCase() || 'unknown';
-};
+export const VisualInspector = ({ htmlContent = '<div><h1>Hello World</h1><div style="width: 400px; height: 300px; background: #eee;">Click me</div></div>' }) => {
+  const iframeRef = useRef(null);
+  const [selectedElement, setSelectedElement] = useState(null); // { id, tagName, width, height }
+  const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Prepare html with injected script
+  const inspectorScript = `
+    <script>
+      const highlighter = document.createElement('div');
+      highlighter.style.position = 'fixed';
+      highlighter.style.pointerEvents = 'none';
+      highlighter.style.border = '2px dashed #3b82f6';
+      highlighter.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+      highlighter.style.zIndex = '999999';
+      highlighter.style.transition = 'all 0.1s ease';
+      highlighter.style.boxSizing = 'border-box';
+      highlighter.style.display = 'none';
+      document.body.appendChild(highlighter);
 
-const getElementType = (el) => {
-  if (!el) return 'unknown';
-  const tag = el.tagName?.toLowerCase();
-  if (tag === 'img') return 'image';
-  if (tag === 'button' || el.getAttribute('role') === 'button') return 'button';
-  if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label'].includes(tag)) return 'text';
-  return 'container';
-};
+      // Tooltip to show size
+      const tooltip = document.createElement('div');
+      tooltip.style.position = 'absolute';
+      tooltip.style.bottom = '-24px';
+      tooltip.style.right = '0';
+      tooltip.style.backgroundColor = '#3b82f6';
+      tooltip.style.color = 'white';
+      tooltip.style.padding = '2px 8px';
+      tooltip.style.fontSize = '12px';
+      tooltip.style.fontFamily = 'sans-serif';
+      tooltip.style.borderRadius = '4px';
+      tooltip.style.pointerEvents = 'none';
+      highlighter.appendChild(tooltip);
 
-const getRecommendations = (elementType, rect, computedStyles) => {
-  if (elementType === 'image') {
-    const ideas = [];
-    if (rect.width < 220) ideas.push('Try a larger image width (~320px+) to improve visual weight.');
-    if (rect.height < 160) ideas.push('Increase image height or use a taller aspect ratio for better balance.');
-    ideas.push('Prefer optimized formats (WebP/AVIF) and keep the subject centered.');
-    ideas.push('Consider adding `object-cover` with a consistent aspect ratio for cleaner layout.');
-    return ideas;
-  }
+      let hoveredEl = null;
 
-  if (elementType === 'text') {
-    const ideas = [];
-    const fontSize = parseFloat(computedStyles.fontSize || '16');
-    if (fontSize < 14) ideas.push('Increase font size slightly (14–16px minimum for body text).');
-    ideas.push('Check contrast ratio against the background for readability.');
-    ideas.push('For headings, increase weight or spacing before increasing size.');
-    return ideas;
-  }
+      document.addEventListener('mousemove', (e) => {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if (!el || el === document.body || el === document.documentElement || el.id === 'vi-root') {
+          highlighter.style.display = 'none';
+          hoveredEl = null;
+          return;
+        }
+        hoveredEl = el;
+        const rect = el.getBoundingClientRect();
+        highlighter.style.display = 'block';
+        highlighter.style.top = rect.top + 'px';
+        highlighter.style.left = rect.left + 'px';
+        highlighter.style.width = Math.max(rect.width, 20) + 'px';
+        highlighter.style.height = Math.max(rect.height, 20) + 'px';
+        tooltip.innerText = Math.round(rect.width) + 'x' + Math.round(rect.height);
+      });
 
-  if (elementType === 'button') {
-    return [
-      'Increase click target to at least 40x40px.',
-      'Use clearer hover/focus states to improve affordance.',
-      'Validate contrast and hierarchy versus surrounding actions.',
-    ];
-  }
+      document.addEventListener('click', (e) => {
+        if (!hoveredEl) return;
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const rect = hoveredEl.getBoundingClientRect();
+        if (!hoveredEl.id) {
+           hoveredEl.id = 'vi-' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        window.parent.postMessage({
+          type: 'ELEMENT_CLICKED',
+          id: hoveredEl.id,
+          tagName: hoveredEl.tagName.toLowerCase(),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height)
+        }, '*');
+      }, true);
 
-  return [
-    'Review spacing consistency (padding/margin rhythm).',
-    'Check responsive behavior across mobile/tablet/desktop.',
-    'Simplify nested wrappers if this block is hard to style.',
-  ];
-};
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'INJECT_IMAGE') {
+          const el = document.getElementById(event.data.id);
+          if (el) {
+            if (el.tagName.toLowerCase() === 'img') {
+              el.src = event.data.url;
+            } else {
+              el.style.backgroundImage = 'url(' + event.data.url + ')';
+              el.style.backgroundSize = 'cover';
+              el.style.backgroundPosition = 'center';
+              el.style.backgroundRepeat = 'no-repeat';
+            }
+          }
+        }
+      });
+      console.log('Visual Inspector Ready');
+    </script>
+  `;
 
-export const VisualInspector = () => {
-  const [enabled, setEnabled] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [rect, setRect] = useState(null);
-  const panelRef = useRef(null);
+  // Provide Tailwind CDN just in case the HTML doesn't have it, so the classes render beautifully
+  const tailwindCdn = '<script src="https://cdn.tailwindcss.com"></script>';
+  const finalHtml = `${htmlContent}\n${tailwindCdn}\n${inspectorScript}`;
 
   useEffect(() => {
-    if (!enabled) return;
-
-    const onClick = (event) => {
-      if (panelRef.current?.contains(event.target)) return;
-      if (!event.altKey) return;
-      event.preventDefault();
-      event.stopPropagation();
-
-      const el = event.target;
-      const box = el.getBoundingClientRect();
-      const styles = window.getComputedStyle(el);
-      setSelected({
-        selector: getSelector(el),
-        tag: el.tagName?.toLowerCase() || 'unknown',
-        className: el.className || '',
-        type: getElementType(el),
-        text: (el.textContent || '').trim().slice(0, 180),
-        styles: {
-          color: styles.color,
-          fontSize: styles.fontSize,
-          fontWeight: styles.fontWeight,
-          backgroundColor: styles.backgroundColor,
-        },
-      });
-      setRect({
-        top: box.top + window.scrollY,
-        left: box.left + window.scrollX,
-        width: box.width,
-        height: box.height,
-      });
+    const handleMessage = (event) => {
+      // Ensure the message is from our trusted iframe logic to avoid outside interference
+      if (event.data && event.data.type === 'ELEMENT_CLICKED') {
+        setSelectedElement(event.data);
+      }
     };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
-    document.addEventListener('click', onClick, true);
-    return () => document.removeEventListener('click', onClick, true);
-  }, [enabled]);
+  const getAspectRatioStr = (w, h) => {
+    // Simplify for common imagen ratios: 1:1, 16:9, 4:3, 3:4, 9:16
+    if (!w || !h) return '1:1';
+    const ratio = w / h;
+    if (ratio > 1.7) return '16:9';
+    if (ratio > 1.2) return '4:3';
+    if (ratio > 0.8) return '1:1';
+    if (ratio >= 0.6) return '3:4';
+    return '9:16';
+  };
 
-  const recommendations = useMemo(() => {
-    if (!selected || !rect) return [];
-    return getRecommendations(selected.type, rect, selected.styles);
-  }, [selected, rect]);
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setIsGenerating(true);
+    try {
+      toast.info('Generating AI image for precise container...');
+      
+      // Inject aspect ratio instruction into the prompt secretly or pass to backend
+      // But standard generateImage just takes prompt. Best is to append ratio info into the prompt for Imagen.
+      const ratioStr = getAspectRatioStr(selectedElement.width, selectedElement.height);
+      const enhancedPrompt = `${prompt}, aspect ratio exactly ${ratioStr}, high quality`;
 
-  const handleCopyPrompt = async () => {
-    if (!selected || !rect) return;
-    const prompt = `Selected ${selected.type} element (${selected.selector}) [${Math.round(rect.width)}x${Math.round(rect.height)}].\nPlease suggest CSS/JS improvements for ${selected.tag} with focus on spacing, typography, and responsiveness.\nCurrent style: color=${selected.styles.color}, font-size=${selected.styles.fontSize}, background=${selected.styles.backgroundColor}.`;
-    await navigator.clipboard.writeText(prompt);
-    toast.success('Inspector prompt copied to clipboard');
+      const result = await generateImage(enhancedPrompt);
+      const dataUrl = `data:${result.mimeType};base64,${result.base64}`;
+      
+      // Send message to iframe to inject image
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({
+          type: 'INJECT_IMAGE',
+          id: selectedElement.id,
+          url: dataUrl
+        }, '*');
+      }
+
+      toast.success('Image injected directly into UI!');
+      setSelectedElement(null);
+      setPrompt('');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate image. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
     <>
-      {enabled && rect && (
-        <div
-          className="absolute border-2 border-primary pointer-events-none z-40 rounded-md"
-          style={{
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-          }}
-        />
-      )}
+      <Card className="border-border flex flex-col h-full overflow-hidden">
+        <CardHeader className="py-3 border-b border-border bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MousePointer2 className="w-4 h-4 text-primary" />
+              <CardTitle className="text-sm font-medium">Visual Inspector</CardTitle>
+            </div>
+            <Badge variant="outline" className="text-xs bg-background/50">Point & Click</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 relative bg-white">
+          <iframe
+            ref={iframeRef}
+            srcDoc={finalHtml}
+            className="w-full h-full min-h-[500px]"
+            sandbox="allow-scripts allow-same-origin"
+            title="Visual Inspector"
+          />
+        </CardContent>
+      </Card>
 
-      <div className="fixed bottom-4 right-4 z-50 w-[360px]" ref={panelRef}>
-        {!enabled ? (
-          <Button className="gap-2 shadow-lg" onClick={() => setEnabled(true)}>
-            <Wand2 className="w-4 h-4" />
-            Visual Inspector
-          </Button>
-        ) : (
-          <Card className="shadow-xl border-primary/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MousePointerClick className="w-4 h-4" />
-                  Click Any Element
-                </CardTitle>
-                <Button size="icon" variant="ghost" onClick={() => setEnabled(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <CardDescription>
-                Hold <strong>Alt</strong> and click images, text, or buttons to inspect selector/class and get styling recommendations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {selected ? (
-                <>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline">{selected.type}</Badge>
-                    <Badge variant="secondary">{selected.tag}</Badge>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{selected.selector}</code>
-                  </div>
-                  {rect && (
-                    <p className="text-xs text-muted-foreground">
-                      Size: {Math.round(rect.width)} x {Math.round(rect.height)}
-                    </p>
-                  )}
-                  {selected.text && (
-                    <p className="text-xs text-muted-foreground line-clamp-3">
-                      Text: {selected.text}
-                    </p>
-                  )}
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold">Recommendations</p>
-                    <ul className="text-xs text-muted-foreground list-disc ml-4 space-y-1">
-                      {recommendations.map((tip, idx) => (
-                        <li key={idx}>{tip}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <Button size="sm" className="gap-2 w-full" onClick={handleCopyPrompt}>
-                    <Copy className="w-3 h-3" />
-                    Copy Edit Prompt
-                  </Button>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Inspector is active. Hold Alt and click any element in the page to analyze it.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      <Dialog open={!!selectedElement} onOpenChange={(open) => !open && setSelectedElement(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImagePlus className="w-5 h-5 text-primary" />
+              Generate Image
+            </DialogTitle>
+            <DialogDescription>
+              We detected a <strong>{selectedElement?.width}x{selectedElement?.height}</strong> {selectedElement?.tagName} element. Enter a prompt to generate an image perfectly sized for this gap.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase">AI Image Prompt</span>
+              <Textarea
+                placeholder="E.g., A beautiful modern workspace with a laptop, cinematic lighting..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="h-24 resize-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="secondary" className="text-[10px]">
+                <Maximize className="w-3 h-3 mr-1" />
+                Detected: {selectedElement?.width}x{selectedElement?.height}
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">
+                Target Ratio: {getAspectRatioStr(selectedElement?.width, selectedElement?.height)}
+              </Badge>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSelectedElement(null)} disabled={isGenerating}>Cancel</Button>
+            <Button onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} className="gap-2 shadow-primary/20 shadow-lg">
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+              {isGenerating ? 'Injecting Image...' : 'Generate & Inject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

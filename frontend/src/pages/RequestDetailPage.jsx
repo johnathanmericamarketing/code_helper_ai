@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { StepIndicator } from '@/components/StepIndicator';
 import { SideBySideDiff } from '@/components/SideBySideDiff';
 import { CodePlayground } from '@/components/CodePlayground';
+import { VisualInspector } from '@/components/VisualInspector';
 import { ValidationResults } from '@/components/ValidationResults';
 import { ExportButton } from '@/components/ExportButton';
 import { DeploymentDialog } from '@/components/DeploymentDialog';
@@ -306,12 +307,26 @@ export const RequestDetailPage = () => {
                   fileName={change.file_path}
                 />
                 
-                {/* Code Playground */}
                 <div className="pt-4">
-                  <CodePlayground
-                    initialCode={change.diff}
-                    language="javascript"
-                  />
+                  <Tabs defaultValue="sandbox" className="w-full">
+                    <div className="flex items-center justify-between mb-4">
+                      <TabsList>
+                        <TabsTrigger value="sandbox">Logic Sandbox</TabsTrigger>
+                        <TabsTrigger value="visual">Visual App Inspector</TabsTrigger>
+                      </TabsList>
+                    </div>
+                    <TabsContent value="sandbox">
+                      <CodePlayground
+                        initialCode={change.diff}
+                        language="javascript"
+                      />
+                    </TabsContent>
+                    <TabsContent value="visual">
+                      <div className="border border-border rounded-lg bg-card">
+                        <VisualInspector htmlContent={change.diff} />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             ))}
