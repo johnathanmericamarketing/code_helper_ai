@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { History as HistoryIcon, Search, Filter } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { requestsService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 export const HistoryPage = () => {
@@ -21,8 +21,8 @@ export const HistoryPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await apiClient.get(`/requests`);
-      setRequests(Array.isArray(response.data) ? response.data : []);
+      const data = await requestsService.list();
+      setRequests(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching requests:', error);
       toast.error('Failed to load requests');

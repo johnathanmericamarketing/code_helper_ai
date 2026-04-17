@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { apiClient } from '@/lib/api';
+import { githubService, workspacesService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 export const IntegrationsPage = () => {
@@ -45,12 +45,12 @@ export const IntegrationsPage = () => {
 
   const fetchAll = async () => {
     try {
-      const [githubResp, workspaceResp] = await Promise.all([
-        apiClient.get(`/github`),
-        apiClient.get(`/workspace`),
+      const [githubData, workspaceData] = await Promise.all([
+        githubService.list(),
+        workspacesService.list(),
       ]);
-      setGithubConnections(githubResp.data);
-      setWorkspaces(workspaceResp.data);
+      setGithubConnections(githubData);
+      setWorkspaces(workspaceData);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load integrations');
@@ -62,35 +62,35 @@ export const IntegrationsPage = () => {
   const handleGithubSubmit = async (e) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/github`, githubForm);
+      await githubService.create(githubForm);
       toast.success('GitHub connected successfully!');
       setGithubDialogOpen(false);
       setGithubForm({ name: '', access_token: '', default_repo: '', default_branch: 'main' });
       fetchAll();
     } catch (error) {
       console.error('Error connecting GitHub:', error);
-      toast.error(error.response?.data?.detail || 'Failed to connect GitHub');
+      toast.error('Failed to connect GitHub');
     }
   };
 
   const handleWorkspaceSubmit = async (e) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/workspace`, workspaceForm);
+      await workspacesService.create(workspaceForm);
       toast.success('Workspace added successfully!');
       setWorkspaceDialogOpen(false);
       setWorkspaceForm({ name: '', path: '', description: '' });
       fetchAll();
     } catch (error) {
       console.error('Error adding workspace:', error);
-      toast.error(error.response?.data?.detail || 'Failed to add workspace');
+      toast.error('Failed to add workspace');
     }
   };
 
   const handleDeleteGithub = async (id) => {
     if (!window.confirm('Remove this GitHub connection?')) return;
     try {
-      await apiClient.delete(`/github/${id}`);
+      await githubService.delete(id);
       toast.success('GitHub connection removed');
       fetchAll();
     } catch (error) {
@@ -102,7 +102,7 @@ export const IntegrationsPage = () => {
   const handleDeleteWorkspace = async (id) => {
     if (!window.confirm('Remove this workspace?')) return;
     try {
-      await apiClient.delete(`/workspace/${id}`);
+      await workspacesService.delete(id);
       toast.success('Workspace removed');
       fetchAll();
     } catch (error) {

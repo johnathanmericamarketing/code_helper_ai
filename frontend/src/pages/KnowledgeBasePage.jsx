@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { apiClient } from '@/lib/api';
+import { knowledgeService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 const categoryIcons = {
@@ -68,8 +68,8 @@ export const KnowledgeBasePage = () => {
 
   const fetchKnowledge = async () => {
     try {
-      const response = await apiClient.get(`/knowledge-base`);
-      setKnowledge(response.data);
+      const data = await knowledgeService.list();
+      setKnowledge(data);
     } catch (error) {
       console.error('Error fetching knowledge:', error);
       toast.error('Failed to load knowledge base');
@@ -89,10 +89,10 @@ export const KnowledgeBasePage = () => {
       };
 
       if (editingItem) {
-        await apiClient.patch(`/knowledge-base/${editingItem.id}`, payload);
+        await knowledgeService.update(editingItem.id, payload);
         toast.success('Knowledge updated');
       } else {
-        await apiClient.post(`/knowledge-base`, payload);
+        await knowledgeService.create(payload);
         toast.success('Knowledge added');
       }
 
@@ -126,7 +126,7 @@ export const KnowledgeBasePage = () => {
     if (!window.confirm('Are you sure you want to delete this knowledge?')) return;
     
     try {
-      await apiClient.delete(`/knowledge-base/${id}`);
+      await knowledgeService.delete(id);
       toast.success('Knowledge deleted');
       fetchKnowledge();
     } catch (error) {

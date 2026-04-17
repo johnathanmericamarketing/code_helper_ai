@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { apiClient } from '@/lib/api';
+import { serversService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 const serverTypeIcons = {
@@ -55,8 +55,8 @@ export const ServersPage = () => {
 
   const fetchServers = async () => {
     try {
-      const response = await apiClient.get(`/servers`);
-      setServers(response.data);
+      const data = await serversService.list();
+      setServers(data);
     } catch (error) {
       console.error('Error fetching servers:', error);
       toast.error('Failed to load servers');
@@ -75,10 +75,10 @@ export const ServersPage = () => {
       };
 
       if (editingServer) {
-        await apiClient.patch(`/servers/${editingServer.id}`, payload);
+        await serversService.update(editingServer.id, payload);
         toast.success('Server updated');
       } else {
-        await apiClient.post(`/servers`, payload);
+        await serversService.create(payload);
         toast.success('Server added');
       }
 
@@ -112,7 +112,7 @@ export const ServersPage = () => {
     if (!window.confirm('Are you sure you want to delete this server?')) return;
     
     try {
-      await apiClient.delete(`/servers/${id}`);
+      await serversService.delete(id);
       toast.success('Server deleted');
       fetchServers();
     } catch (error) {
@@ -122,21 +122,8 @@ export const ServersPage = () => {
   };
 
   const handleTestConnection = async (serverId) => {
-    setTestingServer(serverId);
-    try {
-      const response = await apiClient.post(`/servers/${serverId}/test`);
-      if (response.data.success) {
-        toast.success('Connection successful!');
-        fetchServers(); // Refresh to get updated last_connected
-      } else {
-        toast.error(response.data.message || 'Connection failed');
-      }
-    } catch (error) {
-      console.error('Error testing connection:', error);
-      toast.error('Connection test failed');
-    } finally {
-      setTestingServer(null);
-    }
+    // Live SSH/TCP connections require a backend server — not possible from a browser.
+    toast.info('Connection test requires a backend server. Credentials are saved in Firestore.', { duration: 5000 });
   };
 
   const resetForm = () => {

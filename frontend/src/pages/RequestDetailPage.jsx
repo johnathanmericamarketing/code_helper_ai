@@ -12,7 +12,7 @@ import { DeploymentDialog } from '@/components/DeploymentDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Play, CheckCircle, XCircle, Download, FileCode, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { apiClient } from '@/lib/api';
+import { requestsService, generatedCodeService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 export const RequestDetailPage = () => {
@@ -26,8 +26,8 @@ export const RequestDetailPage = () => {
 
   const fetchRequest = async () => {
     try {
-      const response = await apiClient.get(`/requests/${id}`);
-      setRequest(response.data);
+      const data = await requestsService.get(id);
+      setRequest(data);
       
       // Map status to step
       const statusStepMap = {
@@ -39,15 +39,15 @@ export const RequestDetailPage = () => {
         approved: 6,
         rejected: 6,
       };
-      setCurrentStep(statusStepMap[response.data.status] || 1);
+      setCurrentStep(statusStepMap[data.status] || 1);
       
       // Fetch generated code if exists
-      if (['generated', 'validated', 'approved'].includes(response.data.status)) {
+      if (['generated', 'validated', 'approved'].includes(data.status)) {
         fetchGeneratedCode();
       }
     } catch (error) {
       console.error('Error fetching request:', error);
-      toast.error(error.userMessage || 'Failed to load request');
+      toast.error('Failed to load request');
     } finally {
       setLoading(false);
     }
@@ -60,9 +60,9 @@ export const RequestDetailPage = () => {
 
   const fetchGeneratedCode = async () => {
     try {
-      const response = await apiClient.get(`/generated-code/request/${id}`);
-      if (response.data.length > 0) {
-        setGeneratedData(response.data[0]);
+      const results = await generatedCodeService.getByRequest(id);
+      if (results.length > 0) {
+        setGeneratedData(results[0]);
       }
     } catch (error) {
       console.error('Error fetching generated code:', error);
@@ -73,13 +73,13 @@ export const RequestDetailPage = () => {
     setProcessing(true);
     try {
       toast.info('AI processing started...');
-      const response = await apiClient.post(`/requests/${id}/process`);
-      setGeneratedData(response.data.generated_code);
+      const generated = await requestsService.process(id, request.raw_request);
+      setGeneratedData(generated);
       await fetchRequest();
       toast.success('Code generation complete! Ready for review.');
     } catch (error) {
       console.error('Error processing request:', error);
-      toast.error(error.userMessage || 'Processing failed');
+      toast.error('Processing failed');
     } finally {
       setProcessing(false);
     }
@@ -87,25 +87,25 @@ export const RequestDetailPage = () => {
 
   const handleApprove = async () => {
     try {
-      await apiClient.patch(`/requests/${id}/status`, null, { params: { status: 'approved' } });
+      await requestsService.updateStatus(id, 'approved');
       setRequest({ ...request, status: 'approved' });
       setCurrentStep(6);
       toast.success('Code changes approved!');
     } catch (error) {
       console.error('Error approving request:', error);
-      toast.error(error.userMessage || 'Failed to approve');
+      toast.error('Failed to approve');
     }
   };
 
   const handleReject = async () => {
     try {
-      await apiClient.patch(`/requests/${id}/status`, null, { params: { status: 'rejected' } });
+      await requestsService.updateStatus(id, 'rejected');
       setRequest({ ...request, status: 'rejected' });
       setCurrentStep(6);
       toast.error('Code changes rejected');
     } catch (error) {
       console.error('Error rejecting request:', error);
-      toast.error(error.userMessage || 'Failed to reject');
+      toast.error('Failed to reject');
     }
   };
 

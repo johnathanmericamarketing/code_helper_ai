@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/layouts/MainLayout";
@@ -12,22 +12,9 @@ import { ServersPage } from "@/pages/ServersPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { apiClient } from "@/lib/api";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 function App() {
-  useEffect(() => {
-    // Test backend connection
-    const testConnection = async () => {
-      try {
-        const response = await apiClient.get(`/`);
-        console.log('Backend connected:', response.data.message);
-      } catch (error) {
-        console.error('Backend connection error:', error);
-      }
-    };
-    testConnection();
-  }, []);
 
   return (
     <AppErrorBoundary>

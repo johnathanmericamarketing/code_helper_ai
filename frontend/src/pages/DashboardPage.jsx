@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, FileCode2, TrendingUp, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { DashboardCharts } from '@/components/DashboardCharts';
-import { apiClient } from '@/lib/api';
+import { requestsService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 export const DashboardPage = () => {
@@ -19,8 +19,8 @@ export const DashboardPage = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await apiClient.get(`/requests`);
-      setRequests(Array.isArray(response.data) ? response.data : []);
+      const data = await requestsService.list();
+      setRequests(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching requests:', error);
       toast.error('Failed to load requests');

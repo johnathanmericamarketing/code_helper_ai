@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Send, Sparkles } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { requestsService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 export const RequestForm = ({ onRequestCreated }) => {
@@ -28,11 +28,11 @@ export const RequestForm = ({ onRequestCreated }) => {
 
     setLoading(true);
     try {
-      const response = await apiClient.post(`/requests`, formData);
+      const newRequest = await requestsService.create(formData);
       toast.success('Request submitted successfully!');
       setFormData({ raw_request: '', urgency: 'medium', area_of_app: '' });
       if (onRequestCreated) {
-        onRequestCreated(response.data);
+        onRequestCreated(newRequest);
       }
     } catch (error) {
       console.error('Error creating request:', error);
