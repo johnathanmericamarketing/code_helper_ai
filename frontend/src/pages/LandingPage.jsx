@@ -50,20 +50,22 @@ export const LandingPage = () => {
       </nav>
 
       {/* ── Hero Section ── */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6">
-        {/* Background Gradients */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
+        {/* Background Gradients & Image */}
+        <div className="absolute inset-0 z-0">
+          <img src="/hero-bg.png" alt="Hero Background" className="w-full h-full object-cover opacity-80 dark:opacity-40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
+        </div>
         
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-muted/30 backdrop-blur text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-background/50 backdrop-blur-md shadow-sm text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">Powered by Gemini 1.5 & Claude 3.5</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">Powered by Gemini 1.5 & Claude 3.5</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-tight animate-in fade-in slide-in-from-bottom-6 duration-1000">
             Your personal AI <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 dark:from-white dark:to-white/60">
+            <span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-blue-600 dark:from-blue-400 dark:to-indigo-300 drop-shadow-sm">
               software engineering
             </span> team.
           </h1>
