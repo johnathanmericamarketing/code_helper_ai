@@ -309,23 +309,48 @@ export const SettingsPage = () => {
         <TabsContent value="account" className="space-y-6">
           <Card className="border-border">
             <CardHeader>
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-primary" />
-                <div>
-                  <CardTitle>Profile</CardTitle>
-                  <CardDescription>Your account information</CardDescription>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-primary" />
+                  <div>
+                    <CardTitle>Profile</CardTitle>
+                    <CardDescription>Your account information</CardDescription>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={async () => {
+                   try {
+                     setSaving(true);
+                     await updateUserProfile({ display_name: document.getElementById('display_name').value });
+                     import('firebase/auth').then(({ updateProfile }) => updateProfile(auth.currentUser, { displayName: document.getElementById('display_name').value }));
+                     toast.success('Profile updated successfully');
+                   } catch(e) {
+                     toast.error('Failed to update profile');
+                   } finally {
+                     setSaving(false);
+                   }
+                }} disabled={saving}>
+                  <Save className="w-4 h-4 mr-2" /> Save Profile
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
+                <Label>Display Name</Label>
+                <Input 
+                  id="display_name" 
+                  defaultValue={auth.currentUser?.displayName || profile?.display_name || ''} 
+                  placeholder="Your Name" 
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Email Address</Label>
                 <div className="flex items-center gap-2">
-                  <Input value={currentUser?.email || ''} readOnly className="bg-muted" />
+                  <Input value={currentUser?.email || ''} readOnly className="bg-muted text-muted-foreground" />
                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(currentUser?.email)}>
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">Email changes require support request for security.</p>
               </div>
               <div className="space-y-2">
                 <Label>Account ID</Label>
