@@ -10,7 +10,9 @@ import {
   Code2, 
   ArrowRight, 
   Database, 
-  Layers
+  Layers,
+  MousePointer2,
+  ImagePlus
 } from 'lucide-react';
 
 export const LandingPage = () => {
@@ -114,6 +116,39 @@ export const LandingPage = () => {
               <h3 className="text-xl font-semibold mb-3">Bring Your Own Key</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Connect your personal API keys for unrestricted generation at cost, or subscribe to our Platform tier and let us handle exactly what you use.
+              </p>
+            </div>
+
+            <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors" />
+              <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-6 text-indigo-500">
+                <MousePointer2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Visual App Inspector</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Review generated code in a live iframe. Visually point, hover, and click to measure elements on the screen just like Chrome DevTools.
+              </p>
+            </div>
+
+            <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-32 bg-pink-500/5 rounded-full blur-3xl group-hover:bg-pink-500/10 transition-colors" />
+              <div className="w-12 h-12 bg-pink-500/10 rounded-xl flex items-center justify-center mb-6 text-pink-500">
+                <ImagePlus className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">AI Asset Injection</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Use the visual inspector to select an empty container, and our backend Google Imagen 3 pipeline will perfectly generate and inject a sized image directly into your live UI.
+              </p>
+            </div>
+
+            <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-32 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-colors" />
+              <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-6 text-purple-500">
+                <Zap className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Logic Sandbox</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Execute and test your generated javascript logic locally within the browser sandbox before exporting your finalized projects.
               </p>
             </div>
 
