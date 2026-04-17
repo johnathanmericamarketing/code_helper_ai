@@ -20,7 +20,7 @@ export const DashboardPage = () => {
   const fetchRequests = async () => {
     try {
       const response = await apiClient.get(`/requests`);
-      setRequests(response.data);
+      setRequests(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching requests:', error);
       toast.error('Failed to load requests');
