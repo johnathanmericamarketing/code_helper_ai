@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { getUserProfile } from "@/lib/user-service";
+import { LandingPage } from "@/pages/LandingPage";
 
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
@@ -39,7 +40,7 @@ const AdminRoute = ({ children }) => {
 
   if (!currentUser) return <Navigate to="/auth" state={{ from: location }} replace />;
   if (isAdmin === null) return null; // loading
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!isAdmin) return <Navigate to="/app" replace />;
   return children;
 };
 
@@ -51,8 +52,11 @@ function App() {
           <div className="App">
             <BrowserRouter>
               <Routes>
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/" element={
+                
+                {/* ── Protected Application Routes ── */}
+                <Route path="/app" element={
                   <ProtectedRoute>
                     <MainLayout />
                   </ProtectedRoute>
@@ -66,6 +70,7 @@ function App() {
                   <Route path="servers" element={<ServersPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
+
                 <Route path="/admin" element={
                   <AdminRoute>
                     <div className="min-h-screen bg-background">

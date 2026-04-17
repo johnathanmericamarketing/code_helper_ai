@@ -6,13 +6,13 @@ import { useAuth } from '@/context/AuthContext';
 import { getUserProfile } from '@/lib/user-service';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/create', icon: FileCode2, label: 'New Request' },
-  { to: '/history', icon: History, label: 'History' },
-  { to: '/knowledge', icon: BookOpen, label: 'Knowledge Base' },
-  { to: '/integrations', icon: GitBranch, label: 'Integrations' },
-  { to: '/servers', icon: Server, label: 'Servers' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/app/create', icon: FileCode2, label: 'New Request' },
+  { to: '/app/history', icon: History, label: 'History' },
+  { to: '/app/knowledge', icon: BookOpen, label: 'Knowledge Base' },
+  { to: '/app/integrations', icon: GitBranch, label: 'Integrations' },
+  { to: '/app/servers', icon: Server, label: 'Servers' },
+  { to: '/app/settings', icon: Settings, label: 'Settings' },
 ];
 
 export const Sidebar = () => {

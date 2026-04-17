@@ -37,7 +37,7 @@ export const AuthPage = () => {
         await createUserWithEmailAndPassword(auth, formData.email, formData.password);
         toast.success('Account created successfully!');
       }
-      navigate('/');
+      navigate('/app');
     } catch (error) {
       toast.error(error.message || 'Failed to authenticate');
     } finally {
@@ -51,7 +51,7 @@ export const AuthPage = () => {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       toast.success('Signed in with Google!');
-      navigate('/');
+      navigate('/app');
     } catch (error) {
       toast.error(error.message || 'Google sign-in failed');
     } finally {
