@@ -14,11 +14,13 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "basic-ftp": "^5.0.5",
     "firebase-admin": "^12.1.0",
     "firebase-functions": "^5.0.0",
     "ssh2": "^1.15.0",
-    "ssh2-sftp-client": "^10.0.3"
+    "ssh2-sftp-client": "^10.0.3",
+    "stripe": "^22.0.2"
   },
   "devDependencies": {
     "eslint": "^8.9.0",

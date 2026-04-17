@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch } from 'lucide-react';
+import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { getUserProfile } from '@/lib/user-service';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -14,6 +16,16 @@ const navItems = [
 ];
 
 export const Sidebar = () => {
+  const { currentUser } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    getUserProfile()
+      .then(p => setIsAdmin(p?.role === 'super_admin'))
+      .catch(() => {});
+  }, [currentUser]);
+
   return (
     <div className="hidden md:flex w-64 bg-card border-r border-border h-screen flex-col sticky top-0">
       {/* Logo */}
@@ -23,8 +35,8 @@ export const Sidebar = () => {
             <FileCode2 className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">CodeGen AI</h1>
-            <p className="text-xs text-muted-foreground">Internal Tool</p>
+            <h1 className="text-lg font-bold text-foreground">Code Helper</h1>
+            <p className="text-xs text-muted-foreground">AI Studio</p>
           </div>
         </div>
       </div>
@@ -35,6 +47,7 @@ export const Sidebar = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.to === '/'}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all',
@@ -48,6 +61,29 @@ export const Sidebar = () => {
             <span>{item.label}</span>
           </NavLink>
         ))}
+
+        {/* Super Admin Link — only visible to admins */}
+        {isAdmin && (
+          <>
+            <div className="pt-3 pb-1 px-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Admin</p>
+            </div>
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all',
+                  isActive
+                    ? 'bg-yellow-500/20 text-yellow-600 shadow-md'
+                    : 'text-yellow-600/70 hover:bg-yellow-500/10 hover:text-yellow-600'
+                )
+              }
+            >
+              <Crown className="w-5 h-5" />
+              <span>Super Admin</span>
+            </NavLink>
+          </>
+        )}
       </nav>
 
       {/* Footer */}

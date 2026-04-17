@@ -8,6 +8,24 @@ const Client = require("ssh2-sftp-client");
 initializeApp();
 const db = getFirestore();
 
+// ─── Sub-modules ─────────────────────────────────────────────────────────────
+const adminFns = require("./admin");
+const claudeFns = require("./claude");
+const stripeFns = require("./stripe");
+
+// Re-export all functions
+exports.adminGetUsers   = adminFns.adminGetUsers;
+exports.adminGetStats   = adminFns.adminGetStats;
+exports.adminSetUserRole = adminFns.adminSetUserRole;
+exports.adminGetPayments = adminFns.adminGetPayments;
+
+exports.processCodeRequest = claudeFns.processCodeRequest;
+
+exports.createCheckoutSession = stripeFns.createCheckoutSession;
+exports.createPortalSession   = stripeFns.createPortalSession;
+exports.stripeWebhook         = stripeFns.stripeWebhook;
+
+
 /** Helper to fetch server credentials. */
 async function getServerCredentials(serverId) {
   const doc = await db.collection("servers").doc(serverId).get();

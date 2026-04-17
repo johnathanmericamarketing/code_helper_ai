@@ -11,18 +11,35 @@ import { IntegrationsPage } from "@/pages/IntegrationsPage";
 import { ServersPage } from "@/pages/ServersPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AuthPage } from "@/pages/AuthPage";
+import { AdminPage } from "@/pages/AdminPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { getUserProfile } from "@/lib/user-service";
 
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
   const location = useLocation();
-
   if (!currentUser) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
+  return children;
+};
+
+const AdminRoute = ({ children }) => {
+  const { currentUser } = useAuth();
+  const location = useLocation();
+  const [isAdmin, setIsAdmin] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!currentUser) { setIsAdmin(false); return; }
+    getUserProfile().then(p => setIsAdmin(p?.role === 'super_admin')).catch(() => setIsAdmin(false));
+  }, [currentUser]);
+
+  if (!currentUser) return <Navigate to="/auth" state={{ from: location }} replace />;
+  if (isAdmin === null) return null; // loading
+  if (!isAdmin) return <Navigate to="/" replace />;
   return children;
 };
 
@@ -49,6 +66,15 @@ function App() {
                   <Route path="servers" element={<ServersPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
+                <Route path="/admin" element={
+                  <AdminRoute>
+                    <div className="min-h-screen bg-background">
+                      <div className="max-w-7xl mx-auto p-6">
+                        <AdminPage />
+                      </div>
+                    </div>
+                  </AdminRoute>
+                } />
               </Routes>
             </BrowserRouter>
             <Toaster position="top-right" richColors />
