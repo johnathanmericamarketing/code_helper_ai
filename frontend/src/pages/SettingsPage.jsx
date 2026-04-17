@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { auth } from '@/firebase';
+import { auth, functions } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import {
   getUserProfile,
   updateUserProfile,
@@ -71,11 +72,11 @@ const PLAN_TIERS = [
   },
   {
     id: 'platform',
-    name: 'Platform - Coming Soon',
+    name: 'Platform Subscription',
     description: 'We handle the API keys & billing for you',
-    price: 'Usage-based',
+    price: '$15/month',
     features: ['No API key needed', 'Pay per token used', 'Transparent cost tracking', 'Volume discounts'],
-    disabled: true,
+    price_id: 'price_stubbed_for_now',
   },
 ];
 
@@ -187,6 +188,52 @@ export const SettingsPage = () => {
       setNewPassword('');
     } catch (err) {
       toast.error(err.message || 'Failed to change password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStripeCheckout = async (priceId) => {
+    setSaving(true);
+    try {
+      const fn = httpsCallable(functions, 'createCheckoutSession');
+      const res = await fn({
+        priceId,
+        successUrl: window.location.origin + '/settings?tab=billing&success=true',
+        cancelUrl: window.location.origin + '/settings?tab=billing&canceled=true',
+      });
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        toast.info(res.data?.message || 'Checkout session created (Stub mode)');
+        // Simulate a completed checkout for testing
+        await updateUserProfile({ plan: 'platform' });
+        await loadProfile();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to start checkout');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStripePortal = async () => {
+    setSaving(true);
+    try {
+      const fn = httpsCallable(functions, 'createPortalSession');
+      const res = await fn({
+        returnUrl: window.location.origin + '/settings?tab=billing',
+      });
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        toast.info(res.data?.message || 'Portal session created (Stub mode)');
+        // Simulate cancellation in stub mode for testing
+        await updateUserProfile({ plan: 'free' });
+        await loadProfile();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to open billing portal');
     } finally {
       setSaving(false);
     }
@@ -549,14 +596,34 @@ export const SettingsPage = () => {
                     <Button
                       variant="outline"
                       className="w-full"
+                      disabled={saving}
                       onClick={() => {
                         if (plan.id === 'byok') {
                           document.querySelector('[data-value="api"]')?.click();
                           toast.info('Add your Claude API key to activate BYOK plan');
+                        } else if (plan.id === 'platform') {
+                          handleStripeCheckout(plan.price_id);
+                        } else if (plan.id === 'free') {
+                          // Allow them to remove key or cancel subscription to go free
+                          toast.info('Remove your API key or cancel your subscription to return to Free.');
                         }
                       }}
                     >
+                      {saving && plan.id === 'platform' 
+                        ? <div className="w-4 h-4 rounded-full border-2 border-foreground border-t-transparent animate-spin mr-2" /> 
+                        : null}
                       Switch to {plan.name}
+                    </Button>
+                  )}
+                  {activePlan.id === plan.id && plan.id === 'platform' && (
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2"
+                      disabled={saving}
+                      onClick={handleStripePortal}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Manage Billing
                     </Button>
                   )}
                   {plan.disabled && (
@@ -571,12 +638,10 @@ export const SettingsPage = () => {
           </div>
 
           <Alert>
-            <AlertTriangle className="w-4 h-4" />
-            <AlertTitle>Platform Subscription — Coming Soon</AlertTitle>
+            <Zap className="w-4 h-4" />
+            <AlertTitle>Platform Subscription Active</AlertTitle>
             <AlertDescription>
-              We are integrating Stripe so you can subscribe without needing your own Anthropic key.
-              You will pay usage-based pricing at a transparent markup over Anthropic's published rates.
-              Join the waitlist by emailing us!
+              Stripe billing creates a seamless experience. You will pay for the $15/month base fee and additional usage at standard platform rates.
             </AlertDescription>
           </Alert>
         </TabsContent>

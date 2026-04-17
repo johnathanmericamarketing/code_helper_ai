@@ -38,93 +38,11 @@ function normalizeDates(doc, fields = ['created_at', 'updated_at']) {
   return out;
 }
 
-/** Generate a simulated workflow payload for a request. */
-function buildGeneratedPayload(requestId, rawRequest) {
-  return {
-    id: uuidv4(),
-    request_id: requestId,
-    structured_task: {
-      task_type: 'feature',
-      title: 'Implement requested feature',
-      context: rawRequest,
-      current_behavior: null,
-      expected_behavior: 'Feature should work as described in the request',
-      acceptance_criteria: [
-        'Code compiles without errors',
-        'Feature functions as expected',
-        'Tests pass successfully',
-      ],
-      technical_notes: [
-        'Follow existing code patterns',
-        'Maintain backward compatibility',
-      ],
-      assumptions: ['Current codebase is stable', 'Dependencies are up to date'],
-    },
-    execution_plan: {
-      files_to_modify: ['src/components/Feature.jsx', 'src/utils/helpers.js'],
-      files_to_avoid: ['src/core/config.js', 'src/auth/*'],
-      risk_level: 'low',
-      change_scope_summary: 'Isolated changes to feature components only',
-    },
-    code_changes: [
-      {
-        file_path: 'src/components/Feature.jsx',
-        diff:
-          "import React, { useState } from 'react';\n\nconst Feature = () => {\n  const [data, setData] = useState(null);\n  \n  const handleAction = () => {\n    console.log('Feature activated');\n  };\n  \n  return (\n    <div className=\"feature-container\">\n      <button onClick={handleAction}>\n        Activate Feature\n      </button>\n    </div>\n  );\n};\n\nexport default Feature;",
-        description: 'Added new feature component with action handler',
-      },
-      {
-        file_path: 'src/utils/helpers.js',
-        diff:
-          "export const validateInput = (input) => {\n  return input && input.length > 0;\n};\n\nexport const formatOutput = (data) => {\n  return JSON.stringify(data, null, 2);\n};",
-        description: 'Added utility functions for input validation and output formatting',
-      },
-    ],
-    validation_checks: [
-      {
-        check_name: 'Scope Validation',
-        result: 'passed',
-        message: 'All changes are within allowed files',
-        details: 'No modifications detected outside the planned scope',
-      },
-      {
-        check_name: 'Syntax Check',
-        result: 'passed',
-        message: 'All code is syntactically correct',
-        details: null,
-      },
-      {
-        check_name: 'Dependency Check',
-        result: 'passed',
-        message: 'No new dependencies required',
-        details: null,
-      },
-      {
-        check_name: 'Breaking Changes',
-        result: 'passed',
-        message: 'No breaking changes detected',
-        details: null,
-      },
-      {
-        check_name: 'Test Coverage',
-        result: 'warning',
-        message: 'Consider adding unit tests',
-        details: 'New feature code does not have associated tests',
-      },
-    ],
-    summary:
-      'Successfully generated code for the requested feature. All validation checks passed with one warning.',
-    rollback_instructions: 'Run `git checkout HEAD~1` to revert changes if needed.',
-    created_at: new Date(),
-  };
-}
-
 // ─────────────────────────────────────────────
 // Code Requests
 // ─────────────────────────────────────────────
 
 const REQUESTS_COL = 'code_requests';
-const STATUSES = ['structured', 'planned', 'generated', 'validated'];
 
 export const requestsService = {
   async create(data) {
@@ -170,18 +88,17 @@ export const requestsService = {
     await updateDoc(snap.docs[0].ref, { status, updated_at: new Date() });
   },
 
-  /** Simulate AI processing through all workflow stages, then save generated code. */
-  async process(id, rawRequest) {
-    for (const stage of STATUSES) {
-      await requestsService.updateStatus(id, stage);
-    }
-    // Check if generated code already exists
-    const existing = await generatedCodeService.getByRequest(id);
-    if (existing.length > 0) return existing[0];
-
-    const payload = buildGeneratedPayload(id, rawRequest);
-    await addDoc(collection(db, 'generated_code'), payload);
-    return payload;
+  /** Call the processCodeRequest Cloud Function to generate AI code */
+  async process(id, rawRequest, context = '') {
+    // You could also update the status to "processing" here if desired
+    await requestsService.updateStatus(id, 'generating');
+    
+    // Call the Cloud Function
+    const fn = httpsCallable(functions, 'processCodeRequest');
+    const result = await fn({ requestId: id, rawRequest, context });
+    
+    // Return the payload from the Cloud Function
+    return result.data;
   },
 };
 
