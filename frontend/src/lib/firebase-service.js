@@ -13,7 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '@/firebase';
+import { db, functions, auth } from '@/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 // ─────────────────────────────────────────────
@@ -132,6 +132,7 @@ export const requestsService = {
     const now = new Date();
     const doc = {
       id,
+      userId: auth.currentUser?.uid,
       raw_request: data.raw_request,
       urgency: data.urgency || null,
       area_of_app: data.area_of_app || null,
@@ -148,7 +149,7 @@ export const requestsService = {
 
   async list() {
     const snap = await getDocs(
-      query(collection(db, REQUESTS_COL), orderBy('created_at', 'desc'))
+      query(collection(db, REQUESTS_COL), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
     );
     return snap.docs.map((d) => normalizeDates(d.data()));
   },
@@ -204,7 +205,7 @@ export const generatedCodeService = {
 export const knowledgeService = {
   async list() {
     const snap = await getDocs(
-      query(collection(db, 'knowledge_base'), orderBy('created_at', 'desc'))
+      query(collection(db, 'knowledge_base'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
     );
     return snap.docs.map((d) => normalizeDates(d.data()));
   },
@@ -212,7 +213,7 @@ export const knowledgeService = {
   async create(data) {
     const id = uuidv4();
     const now = new Date();
-    const doc = { id, ...data, created_at: now, updated_at: now };
+    const doc = { id, userId: auth.currentUser?.uid, ...data, created_at: now, updated_at: now };
     await addDoc(collection(db, 'knowledge_base'), doc);
     return doc;
   },
@@ -242,7 +243,7 @@ export const knowledgeService = {
 export const serversService = {
   async list() {
     const snap = await getDocs(
-      query(collection(db, 'servers'), orderBy('created_at', 'desc'))
+      query(collection(db, 'servers'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
     );
     return snap.docs.map((d) => {
       const srv = normalizeDates(d.data());
@@ -258,6 +259,7 @@ export const serversService = {
     const now = new Date();
     const doc = {
       id,
+      userId: auth.currentUser?.uid,
       name: data.name,
       server_type: data.server_type,
       host: data.host,
@@ -329,7 +331,7 @@ export const serversService = {
 export const githubService = {
   async list() {
     const snap = await getDocs(
-      query(collection(db, 'github_connections'), orderBy('created_at', 'desc'))
+      query(collection(db, 'github_connections'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
     );
     return snap.docs.map((d) => {
       const conn = normalizeDates(d.data());
@@ -343,6 +345,7 @@ export const githubService = {
     const now = new Date();
     const doc = {
       id,
+      userId: auth.currentUser?.uid,
       name: data.name,
       access_token: data.access_token,
       username: data.username || null,
@@ -372,7 +375,7 @@ export const githubService = {
 export const workspacesService = {
   async list() {
     const snap = await getDocs(
-      query(collection(db, 'workspaces'), orderBy('created_at', 'desc'))
+      query(collection(db, 'workspaces'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
     );
     return snap.docs.map((d) => normalizeDates(d.data(), ['created_at']));
   },
@@ -382,6 +385,7 @@ export const workspacesService = {
     const now = new Date();
     const doc = {
       id,
+      userId: auth.currentUser?.uid,
       name: data.name,
       path: data.path,
       description: data.description || null,
