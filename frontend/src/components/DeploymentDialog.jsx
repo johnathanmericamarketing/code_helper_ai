@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Server, Upload, CheckCircle, AlertTriangle, Rocket } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { serversService, requestsService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
 export const DeploymentDialog = ({ requestId, codeChanges, onDeploySuccess, triggerButton }) => {
@@ -36,8 +36,8 @@ export const DeploymentDialog = ({ requestId, codeChanges, onDeploySuccess, trig
   const fetchServers = async () => {
     setLoadingServers(true);
     try {
-      const response = await apiClient.get(`/servers`);
-      const activeServers = response.data.filter(s => s.is_active);
+      const allServers = await serversService.list();
+      const activeServers = allServers.filter(s => s.is_active);
       setServers(activeServers);
       if (activeServers.length > 0) {
         setSelectedServer(activeServers[0].id);
@@ -63,24 +63,29 @@ export const DeploymentDialog = ({ requestId, codeChanges, onDeploySuccess, trig
 
     setDeploying(true);
     try {
-      const response = await apiClient.post(`/deploy`, {
-        request_id: requestId,
-        server_id: selectedServer,
-        files_to_deploy: selectedFiles,
-      });
+      // Map to expected format for cloud function
+      const filesToDeploy = codeChanges
+        .filter(c => selectedFiles.includes(c.file_path))
+        .map(c => ({
+          path: c.file_path,
+          content: c.diff // Using 'diff' field which holds the full generated file content
+        }));
 
-      if (response.data.success) {
-        toast.success(response.data.message || 'Deployment successful!');
+      const response = await serversService.deployCode(selectedServer, filesToDeploy);
+
+      if (response.success) {
+        toast.success(response.message || 'Deployment successful!');
+        await requestsService.updateStatus(requestId, 'deployed');
         setOpen(false);
         if (onDeploySuccess) {
           onDeploySuccess();
         }
       } else {
-        toast.error(response.data.message || 'Deployment failed');
+        toast.error(response.message || 'Deployment failed');
       }
     } catch (error) {
       console.error('Error deploying:', error);
-      toast.error('Deployment failed: ' + (error.response?.data?.detail || error.message));
+      toast.error('Deployment failed: ' + error.message);
     } finally {
       setDeploying(false);
     }

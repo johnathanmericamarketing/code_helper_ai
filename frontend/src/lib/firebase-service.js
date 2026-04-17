@@ -12,7 +12,8 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '@/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 // ─────────────────────────────────────────────
@@ -294,6 +295,30 @@ export const serversService = {
     );
     if (snap.empty) throw new Error('Server not found');
     await deleteDoc(snap.docs[0].ref);
+  },
+
+  async testConnection(serverId) {
+    const testFn = httpsCallable(functions, 'testConnection');
+    const result = await testFn({ serverId });
+    return result.data;
+  },
+
+  async listRemoteFiles(serverId, path = '') {
+    const fn = httpsCallable(functions, 'listRemoteFiles');
+    const result = await fn({ serverId, path });
+    return result.data;
+  },
+
+  async readRemoteFile(serverId, filePath) {
+    const fn = httpsCallable(functions, 'readRemoteFile');
+    const result = await fn({ serverId, filePath });
+    return result.data;
+  },
+
+  async deployCode(serverId, fileData) {
+    const fn = httpsCallable(functions, 'deployCode');
+    const result = await fn({ serverId, fileData });
+    return result.data;
   },
 };
 

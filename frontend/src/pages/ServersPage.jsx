@@ -122,8 +122,21 @@ export const ServersPage = () => {
   };
 
   const handleTestConnection = async (serverId) => {
-    // Live SSH/TCP connections require a backend server — not possible from a browser.
-    toast.info('Connection test requires a backend server. Credentials are saved in Firestore.', { duration: 5000 });
+    setTestingServer(serverId);
+    try {
+      const response = await serversService.testConnection(serverId);
+      if (response.success) {
+        toast.success(response.message || 'Connection successful!');
+        fetchServers(); // Refresh to get updated last_connected
+      } else {
+        toast.error(response.message || 'Connection failed');
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      toast.error(error.message || 'Connection test failed');
+    } finally {
+      setTestingServer(null);
+    }
   };
 
   const resetForm = () => {
