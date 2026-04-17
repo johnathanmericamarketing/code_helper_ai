@@ -12,6 +12,7 @@ const db = getFirestore();
 const adminFns = require("./admin");
 const claudeFns = require("./claude");
 const stripeFns = require("./stripe");
+const mediaFns = require("./media");
 
 // Re-export all functions
 exports.adminGetUsers   = adminFns.adminGetUsers;
@@ -20,6 +21,7 @@ exports.adminSetUserRole = adminFns.adminSetUserRole;
 exports.adminGetPayments = adminFns.adminGetPayments;
 
 exports.processCodeRequest = claudeFns.processCodeRequest;
+exports.generateImage = mediaFns.generateImage;
 
 exports.createCheckoutSession = stripeFns.createCheckoutSession;
 exports.createPortalSession   = stripeFns.createPortalSession;

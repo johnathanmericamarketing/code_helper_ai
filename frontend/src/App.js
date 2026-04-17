@@ -12,6 +12,7 @@ import { ServersPage } from "@/pages/ServersPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { AdminPage } from "@/pages/AdminPage";
+import { AssetStudioPage } from "@/pages/AssetStudioPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -66,6 +67,7 @@ function App() {
                   <Route path="history" element={<HistoryPage />} />
                   <Route path="request/:id" element={<RequestDetailPage />} />
                   <Route path="knowledge" element={<KnowledgeBasePage />} />
+                  <Route path="assets" element={<AssetStudioPage />} />
                   <Route path="integrations" element={<IntegrationsPage />} />
                   <Route path="servers" element={<ServersPage />} />
                   <Route path="settings" element={<SettingsPage />} />

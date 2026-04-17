@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch, Crown } from 'lucide-react';
+import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch, Crown, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProfile } from '@/lib/user-service';
@@ -8,6 +8,7 @@ import { getUserProfile } from '@/lib/user-service';
 const navItems = [
   { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/app/create', icon: FileCode2, label: 'New Request' },
+  { to: '/app/assets', icon: ImagePlus, label: 'Asset Studio' },
   { to: '/app/history', icon: History, label: 'History' },
   { to: '/app/knowledge', icon: BookOpen, label: 'Knowledge Base' },
   { to: '/app/integrations', icon: GitBranch, label: 'Integrations' },
