@@ -1,0 +1,46 @@
+[debug] [2026-04-17T18:26:50.252Z] ----------------------------------------------------------------------
+[debug] [2026-04-17T18:26:50.255Z] Command:       H:\Program Files\node\node.exe C:\Users\johnn\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting firestore:rules
+[debug] [2026-04-17T18:26:50.255Z] CLI Version:   15.15.0
+[debug] [2026-04-17T18:26:50.255Z] Platform:      win32
+[debug] [2026-04-17T18:26:50.255Z] Node Version:  v24.11.1
+[debug] [2026-04-17T18:26:50.255Z] Time:          Fri Apr 17 2026 11:26:50 GMT-0700 (Pacific Daylight Time)
+[debug] [2026-04-17T18:26:50.255Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-17T18:26:51.740Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-17T18:26:51.741Z] > authorizing via signed-in user (johnathan.mericamarketing@gmail.com)
+[debug] [2026-04-17T18:26:51.741Z] [iam] checking project code-helper-studio for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-17T18:26:51.742Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:51.742Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:51.742Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/code-helper-studio:testIamPermissions [none]
+[debug] [2026-04-17T18:26:51.742Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/code-helper-studio:testIamPermissions  x-goog-user-project=code-helper-studio
+[debug] [2026-04-17T18:26:51.743Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/code-helper-studio:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-17T18:26:51.924Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/code-helper-studio:testIamPermissions 200
+[debug] [2026-04-17T18:26:51.924Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/code-helper-studio:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-17T18:26:51.924Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:51.924Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:51.925Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/code-helper-studio [none]
+[debug] [2026-04-17T18:26:52.146Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/code-helper-studio 200
+[debug] [2026-04-17T18:26:52.146Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/code-helper-studio {"projectId":"code-helper-studio","projectNumber":"502657160656","displayName":"code helper studio","name":"projects/code-helper-studio","resources":{"hostingSite":"code-helper-studio"},"state":"ACTIVE","etag":"1_e690c97a-9795-4d19-a39d-d131c384486f"}
+[info] 
+[info] === Deploying to 'code-helper-studio'...
+[info] 
+[info] i  deploying firestore, hosting 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-04-17T18:26:52.149Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:52.149Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:52.149Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/code-helper-studio/databases/(default) [none]
+[debug] [2026-04-17T18:26:52.598Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/code-helper-studio/databases/(default) 200
+[debug] [2026-04-17T18:26:52.598Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/code-helper-studio/databases/(default) {"name":"projects/code-helper-studio/databases/(default)","uid":"ef2501f9-26f6-4a5c-9c32-cab92980f07c","createTime":"2026-04-17T16:47:59.610688Z","updateTime":"2026-04-17T16:47:59.610688Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-04-17T17:26:52.966167Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IL7azb7B9ZMDMKjU47Sr9ZMD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-04-17T18:26:52.599Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:52.599Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:52.599Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/code-helper-studio:test [none]
+[debug] [2026-04-17T18:26:52.599Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/code-helper-studio:test [omitted]
+[debug] [2026-04-17T18:26:52.967Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/code-helper-studio:test 200
+[debug] [2026-04-17T18:26:52.967Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/code-helper-studio:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-04-17T18:26:52.969Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:52.969Z] Checked if tokens are valid: true, expires at: 1776451491197
+[debug] [2026-04-17T18:26:52.969Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/code-helper-studio/versions [none]
+[debug] [2026-04-17T18:26:52.969Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/code-helper-studio/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
