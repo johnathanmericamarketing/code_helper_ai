@@ -24,15 +24,16 @@ import {
   changeUserPassword,
 } from '@/lib/user-service';
 
-// ── Claude API Pricing (as of mid-2024, per 1M tokens) ──
-const CLAUDE_MODELS = [
+// ── AI Model Pricing (per 1M tokens) ──
+const AI_MODELS = [
+  // Anthropic Claude
   {
     id: 'claude-opus-4-5',
     name: 'Claude Opus 4.5',
     description: 'Most capable — best for complex code',
     input_per_mtok: 15.0,
     output_per_mtok: 75.0,
-    badge: 'Most Powerful',
+    badge: 'Anthropic',
     badgeVariant: 'default',
   },
   {
@@ -41,16 +42,35 @@ const CLAUDE_MODELS = [
     description: 'Great balance of speed & intelligence',
     input_per_mtok: 3.0,
     output_per_mtok: 15.0,
-    badge: 'Recommended',
+    badge: 'Popular',
     badgeVariant: 'success',
   },
   {
     id: 'claude-haiku-3-5',
     name: 'Claude Haiku 3.5',
-    description: 'Fastest & cheapest — ideal for simple tasks',
+    description: 'Fastest & cheapest for simple tasks',
     input_per_mtok: 0.8,
     output_per_mtok: 4.0,
-    badge: 'Most Affordable',
+    badge: 'Cheap',
+    badgeVariant: 'outline',
+  },
+  // Google Gemini
+  {
+    id: 'gemini-1.5-pro-latest',
+    name: 'Gemini 1.5 Pro',
+    description: 'Google\'s most powerful model — excellent coding',
+    input_per_mtok: 3.5,
+    output_per_mtok: 10.5,
+    badge: 'Google',
+    badgeVariant: 'default',
+  },
+  {
+    id: 'gemini-1.5-flash-latest',
+    name: 'Gemini 1.5 Flash',
+    description: 'Lightweight & extremely fast generation',
+    input_per_mtok: 0.075,
+    output_per_mtok: 0.3,
+    badge: 'Fast',
     badgeVariant: 'outline',
   },
 ];
@@ -102,8 +122,9 @@ export const SettingsPage = () => {
     try {
       const data = await getUserProfile();
       setProfile(data);
-      setSelectedModel(data.claude_model || 'claude-sonnet-4-5');
-      if (data.claude_api_key) setApiKey(data.claude_api_key);
+      setSelectedModel(data.ai_model || data.claude_model || 'claude-sonnet-4-5');
+      const savedKey = data.ai_api_key || data.claude_api_key;
+      if (savedKey) setApiKey(savedKey);
     } catch (err) {
       toast.error('Failed to load profile');
     } finally {
@@ -112,14 +133,15 @@ export const SettingsPage = () => {
   };
 
   const handleSaveApiKey = async () => {
-    if (!apiKey.trim().startsWith('sk-ant-')) {
-      toast.error('Invalid Anthropic API key. Must start with sk-ant-');
+    const key = apiKey.trim();
+    if (!key.startsWith('sk-ant-') && !key.startsWith('AIza')) {
+      toast.error('Invalid API key. Must be an Anthropic (sk-ant-) or Gemini (AIza) key.');
       return;
     }
     setSaving(true);
     try {
-      await updateUserProfile({ claude_api_key: apiKey.trim(), plan: 'byok' });
-      toast.success('Claude API key saved! You are now on the BYOK plan.');
+      await updateUserProfile({ ai_api_key: key, plan: 'byok' });
+      toast.success('API key saved! You are now on the BYOK plan.');
       await loadProfile();
     } catch (err) {
       toast.error('Failed to save API key');
@@ -131,7 +153,7 @@ export const SettingsPage = () => {
   const handleRemoveApiKey = async () => {
     setSaving(true);
     try {
-      await updateUserProfile({ claude_api_key: null, plan: 'free' });
+      await updateUserProfile({ ai_api_key: null, plan: 'free' });
       setApiKey('');
       toast.success('API key removed. Switched back to Free plan.');
       await loadProfile();
@@ -145,8 +167,8 @@ export const SettingsPage = () => {
   const handleSaveModel = async () => {
     setSaving(true);
     try {
-      await updateUserProfile({ claude_model: selectedModel });
-      toast.success('Default Claude model updated!');
+      await updateUserProfile({ ai_model: selectedModel });
+      toast.success('Default AI model updated!');
     } catch (err) {
       toast.error('Failed to save model preference');
     } finally {
@@ -316,8 +338,8 @@ export const SettingsPage = () => {
               </div>
               <div className="flex items-center gap-2 pt-2">
                 <Badge variant="outline">{activePlan.name} Plan</Badge>
-                <Badge variant={profile?.claude_api_key ? 'success' : 'secondary'}>
-                  {profile?.claude_api_key ? 'BYOK Active' : 'No API Key'}
+                <Badge variant={(profile?.ai_api_key || profile?.claude_api_key) ? 'success' : 'secondary'}>
+                  {(profile?.ai_api_key || profile?.claude_api_key) ? 'BYOK Active' : 'No API Key'}
                 </Badge>
               </div>
             </CardContent>
@@ -389,33 +411,35 @@ export const SettingsPage = () => {
           </Card>
         </TabsContent>
 
-        {/* ── Claude API Tab ── */}
+        {/* ── AI Provider API Tab ── */}
         <TabsContent value="api" className="space-y-6">
           <Alert>
             <Key className="w-4 h-4" />
             <AlertTitle>Bring Your Own Key (BYOK)</AlertTitle>
             <AlertDescription>
-              Enter your personal Anthropic API key to use Claude for AI code generation.
+              Enter your personal Anthropic or Gemini API key to use for AI code generation.
               Your key is stored securely in your private Firestore account document.
-              You will be billed directly by Anthropic for your usage.
+              You will be billed directly by your AI provider for your usage.
             </AlertDescription>
           </Alert>
 
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Anthropic API Key</CardTitle>
-              <CardDescription>Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="text-primary underline">console.anthropic.com</a></CardDescription>
+              <CardTitle>AI Provider API Key</CardTitle>
+              <CardDescription>
+                Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="text-primary underline">Anthropic Console</a> or <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-primary underline">Google AI Studio</a>
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>API Key</Label>
+                <Label>API Key (Starts with sk-ant- or AIza)</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Input
                       type={showApiKey ? 'text' : 'password'}
                       value={apiKey}
                       onChange={e => setApiKey(e.target.value)}
-                      placeholder="sk-ant-api03-..."
+                      placeholder="sk-ant-api03-... or AIza..."
                       className="font-mono pr-10"
                     />
                     <button
@@ -433,13 +457,13 @@ export const SettingsPage = () => {
                   <Save className="w-4 h-4" />
                   Save API Key
                 </Button>
-                {profile?.claude_api_key && (
+                { (profile?.ai_api_key || profile?.claude_api_key) && (
                   <Button variant="outline" onClick={handleRemoveApiKey} disabled={saving}>
                     Remove Key
                   </Button>
                 )}
               </div>
-              {profile?.claude_api_key && (
+              { (profile?.ai_api_key || profile?.claude_api_key) && (
                 <div className="flex items-center gap-2 text-sm text-success">
                   <CheckCircle className="w-4 h-4" />
                   API key configured — BYOK plan active

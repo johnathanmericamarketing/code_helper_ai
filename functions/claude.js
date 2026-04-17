@@ -26,14 +26,16 @@ async function recordUsage(uid, inputTokens, outputTokens, costUsd) {
   });
 }
 
-// ─── Claude pricing per million tokens ───────────────────────────────────────
-const CLAUDE_PRICING = {
-  "claude-opus-4-5":    { input: 15.0,  output: 75.0 },
-  "claude-sonnet-4-5":  { input: 3.0,   output: 15.0 },
-  "claude-haiku-3-5":   { input: 0.8,   output: 4.0  },
+// ─── Model pricing per million tokens ──────────────────────────────────────────
+const AI_PRICING = {
+  "claude-opus-4-5":       { input: 15.0,  output: 75.0 },
+  "claude-sonnet-4-5":     { input: 3.0,   output: 15.0 },
+  "claude-haiku-3-5":      { input: 0.8,   output: 4.0  },
+  "gemini-1.5-pro-latest": { input: 3.5,   output: 10.5 },
+  "gemini-1.5-flash-latest":{ input: 0.075, output: 0.3  },
 };
 
-// ─── processCodeRequest: real Claude AI code generation ──────────────────────
+// ─── processCodeRequest: AI code generation ──────────────────────────────────
 exports.processCodeRequest = onCall(async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in");
 
@@ -45,9 +47,21 @@ exports.processCodeRequest = onCall(async (request) => {
   const uid = request.auth.uid;
   const profile = await getUserProfile(uid);
 
-  // Determine which API key to use: BYOK > Platform > error
-  const apiKey = profile.claude_api_key || process.env.ANTHROPIC_PLATFORM_KEY || null;
   const model = profile.claude_model || "claude-sonnet-4-5";
+  const isGemini = model.startsWith("gemini");
+  
+  // Determine which API key to use: BYOK > Platform > error
+  // Map legacy 'claude_api_key' to 'ai_api_key' generically
+  const byokKey = profile.ai_api_key || profile.claude_api_key;
+  let apiKey = null;
+
+  if (byokKey) {
+    apiKey = byokKey;
+  } else if (isGemini && process.env.GEMINI_PLATFORM_KEY) {
+    apiKey = process.env.GEMINI_PLATFORM_KEY;
+  } else if (!isGemini && process.env.ANTHROPIC_PLATFORM_KEY) {
+    apiKey = process.env.ANTHROPIC_PLATFORM_KEY;
+  }
 
   // ── FRAMEWORK MODE: Return realistic stub if no key is configured ──────────
   if (!apiKey) {
@@ -65,62 +79,85 @@ exports.processCodeRequest = onCall(async (request) => {
     return { ...stub, mode: "stub" };
   }
 
-  // ── LIVE MODE: Call Anthropic API ─────────────────────────────────────────
-  const Anthropic = require("@anthropic-ai/sdk");
-  const anthropic = new Anthropic({ apiKey });
-
   const systemPrompt = `You are an expert software engineer AI assistant integrated into Code Helper Studio.
 Your job is to analyze code change requests and produce structured JSON output describing what changes need to be made.
 
-Always respond with valid JSON matching this structure:
+Always respond with valid JSON block (no markdown fences) matching this structure:
 {
-  "structured_task": { "task_type": string, "title": string, "context": string, "expected_behavior": string, "acceptance_criteria": string[], "technical_notes": string[], "assumptions": string[] },
-  "execution_plan": { "files_to_modify": string[], "files_to_avoid": string[], "risk_level": "low"|"medium"|"high", "change_scope_summary": string },
-  "code_changes": [ { "file_path": string, "diff": string, "description": string } ],
-  "validation_checks": [ { "check_name": string, "result": "passed"|"warning"|"failed", "message": string, "details": string|null } ],
-  "summary": string,
-  "rollback_instructions": string
+  "structured_task": { "task_type": "string", "title": "string", "context": "string", "expected_behavior": "string", "acceptance_criteria": ["string"], "technical_notes": ["string"], "assumptions": ["string"] },
+  "execution_plan": { "files_to_modify": ["string"], "files_to_avoid": ["string"], "risk_level": "low"|"medium"|"high", "change_scope_summary": "string" },
+  "code_changes": [ { "file_path": "string", "diff": "string", "description": "string" } ],
+  "validation_checks": [ { "check_name": "string", "result": "passed"|"warning"|"failed", "message": "string", "details": "string|null" } ],
+  "summary": "string",
+  "rollback_instructions": "string"
 }`;
 
   try {
-    const message = await anthropic.messages.create({
-      model,
-      max_tokens: profile.max_tokens || 4096,
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: `Code change request:\n${rawRequest}\n\n${context ? `Additional context:\n${context}` : ""}`,
-        },
-      ],
-    });
+    let responseText = "";
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    if (isGemini) {
+      // ── GEMINI API CALL ───────────────────────────────────────────────────
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const geminiModel = genAI.getGenerativeModel({
+        model,
+        systemInstruction: systemPrompt
+      });
+
+      const prompt = `Code change request:\n${rawRequest}\n\n${context ? `Additional context:\n${context}` : ""}`;
+      const result = await geminiModel.generateContent(prompt);
+      const response = await result.response;
+      responseText = response.text();
+      // Note: Full token counting might require countTokens, but we simulate approx for billing
+      inputTokens = Math.round(prompt.length / 4); 
+      outputTokens = Math.round(responseText.length / 4);
+
+    } else {
+      // ── CLAUDE API CALL ───────────────────────────────────────────────────
+      const Anthropic = require("@anthropic-ai/sdk");
+      const anthropic = new Anthropic({ apiKey });
+
+      const message = await anthropic.messages.create({
+        model,
+        max_tokens: profile.max_tokens || 4096,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: `Code change request:\n${rawRequest}\n\n${context ? `Additional context:\n${context}` : ""}`,
+          },
+        ],
+      });
+      responseText = message.content[0].text;
+      inputTokens = message.usage.input_tokens;
+      outputTokens = message.usage.output_tokens;
+    }
 
     // Parse response
-    const responseText = message.content[0].text;
     let parsed;
     try {
       // Strip markdown code fences if present
-      const cleaned = responseText.replace(/```json\n?|\n?```/g, "").trim();
+      const cleaned = responseText.replace(/```(?:json)?\n?|\n?```/gi, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new HttpsError("internal", "Failed to parse Claude response as JSON");
+      throw new HttpsError("internal", "Failed to parse AI response as JSON");
     }
 
     // Calculate cost
-    const pricing = CLAUDE_PRICING[model] || CLAUDE_PRICING["claude-sonnet-4-5"];
+    const pricing = AI_PRICING[model] || AI_PRICING["claude-sonnet-4-5"];
     const costUsd =
-      (message.usage.input_tokens * pricing.input +
-        message.usage.output_tokens * pricing.output) /
-      1_000_000;
+      (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
 
-    await recordUsage(uid, message.usage.input_tokens, message.usage.output_tokens, costUsd);
+    await recordUsage(uid, inputTokens, outputTokens, costUsd);
 
     const payload = {
       id: require("crypto").randomUUID(),
       request_id: requestId,
       ...parsed,
       model_used: model,
-      tokens: { input: message.usage.input_tokens, output: message.usage.output_tokens },
+      tokens: { input: inputTokens, output: outputTokens },
       cost_usd: costUsd,
       created_at: new Date().toISOString(),
       userId: uid,
@@ -135,7 +172,7 @@ Always respond with valid JSON matching this structure:
     return { ...payload, mode: "live" };
   } catch (err) {
     if (err instanceof HttpsError) throw err;
-    throw new HttpsError("internal", "Claude API error: " + err.message);
+    throw new HttpsError("internal", "AI API error: " + err.message);
   }
 });
 
