@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Users, CreditCard, BarChart3, Shield, RefreshCw,
-  Key, CheckCircle, AlertTriangle, Crown, UserX
+  Key, CheckCircle, AlertTriangle, Crown, UserX, ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminService } from '@/lib/admin-service';
@@ -91,9 +92,17 @@ export const AdminPage = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Shield className="w-8 h-8 text-destructive" /> Super Admin
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <Shield className="w-8 h-8 text-destructive" /> Super Admin
+          </h1>
+          <Button variant="outline" asChild className="gap-2">
+            <Link to="/app">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
+        </div>
         <Alert variant="destructive">
           <AlertTriangle className="w-4 h-4" />
           <AlertTitle>Access Denied or Error</AlertTitle>
@@ -114,10 +123,18 @@ export const AdminPage = () => {
           </h1>
           <p className="text-muted-foreground mt-1">Full platform oversight — users, payments, and usage</p>
         </div>
-        <Button variant="outline" onClick={loadAll} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild className="gap-2">
+            <Link to="/app">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={loadAll} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Row */}
