@@ -9,11 +9,15 @@ import { VisualInspector } from '@/components/VisualInspector';
 import { LiveSitePreview } from '@/components/LiveSitePreview';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { BrandKitCard } from '@/components/BrandKitCard';
+import { SectionBlock } from '@/components/ui/section-block';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Sparkles, Send, Loader2, Rocket, FileCode2, Eye, Wand2, Trash2, Settings2, Lightbulb, X, Palette } from 'lucide-react';
+import { 
+  Sparkles, Send, Loader2, Rocket, FileCode2, Eye, Wand2, Trash2, Settings2, 
+  Lightbulb, X, Palette, CheckCircle2, MonitorSmartphone, Bot, Globe
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService } from '@/lib/firebase-service';
 import { projectService } from '@/lib/project-service';
@@ -21,6 +25,11 @@ import { useProject } from '@/context/ProjectContext';
 import { detectBrandSignals } from '@/lib/brand-detection';
 import { generationRTDB, useGenerationProgress } from '@/lib/realtime-service';
 import Editor from '@monaco-editor/react';
+
+const tabs = [
+  { id: "guided", label: "Guided" },
+  { id: "build", label: "Build" }
+];
 
 export const WorkspaceStudioPage = () => {
   const { activeProject, refreshActiveProject } = useProject();
@@ -234,139 +243,247 @@ export const WorkspaceStudioPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] bg-background overflow-hidden">
-      
-      {/* Top Main Workspace (3 columns) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-0 min-h-0 divide-x divide-border">
-        
-        {/* Column 1: Server Code */}
-        <div className="flex flex-col h-full bg-[#1e1e1e]">
-          <div className="h-10 border-b border-white/10 flex items-center px-4 bg-[#252526] text-white/70 text-xs font-semibold justify-between shrink-0">
-            <span className="flex items-center gap-2 uppercase tracking-wider"><FileCode2 className="w-3.5 h-3.5"/> Your Code From Server</span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWizardOpen(true)}
-                disabled={!activeProject}
-                className="h-7 text-[11px] text-white/70 hover:text-white hover:bg-white/10 gap-1"
-                title="Site info & goals"
-              >
-                <Settings2 className="w-3.5 h-3.5"/>
-                Site info
-                {activeProject?.intake?.completedAt && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-success ml-0.5" />
-                )}
-              </Button>
-              <Badge variant="outline" className="border-white/20 text-white/50 bg-transparent scale-90">Read Only</Badge>
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-background text-foreground">
+      {/* Header Block */}
+      <div className="border-b border-border bg-card px-5 py-4 shrink-0">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted/80">Builder mode</Badge>
+              Safe preview only
             </div>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Workspace Studio</h1>
           </div>
-          <div className="flex-1 min-h-0 relative">
-            <Editor
-              height="100%"
-              language="javascript"
-              theme="vs-dark"
-              value={serverCode}
-              options={{ minimap: { enabled: false }, readOnly: true, fontSize: 12, wordWrap: 'on' }}
-            />
+
+          <div className="flex items-center gap-3">
+            {/* Top actions */}
+            <div className="flex rounded-lg border border-border bg-muted/30 p-1">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab.id === 'guided' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            
+            <Button onClick={() => setWizardOpen(true)} variant="outline" className="gap-2 bg-card h-9">
+               <Settings2 className="w-4 h-4"/> Site Info
+               {activeProject?.intake?.completedAt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+            </Button>
+
+            <Button 
+              onClick={() => setConfirmOpen(true)}
+              disabled={!futureAppCode || isGenerating}
+              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white h-9"
+            >
+              <CheckCircle2 className="w-4 h-4"/>
+              Publish to Live
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* Column 2: Your Site Now */}
-        <div className="flex flex-col h-full bg-card relative">
-          <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-muted/40 shrink-0">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-muted text-muted-foreground border">Before</Badge>
-              <div className="flex flex-col leading-tight">
-                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-primary"/> Your Site Now</span>
-                <span className="text-[11px] text-muted-foreground">What visitors see today</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 min-h-0 overflow-hidden bg-background">
-            <LiveSitePreview initialUrl={activeProject?.domain} title="Your Site" />
-          </div>
-        </div>
-
-        {/* Column 3: Your Site With Changes */}
-        <div className={`flex flex-col h-full bg-muted/10 relative border-l ${futureAppCode && !isGenerating ? 'border-primary/60 ring-2 ring-primary/30 ring-inset' : 'border-border/50'}`}>
-          <div className={`h-12 border-b flex items-center justify-between px-4 shrink-0 ${futureAppCode && !isGenerating ? 'bg-primary/5 border-primary/40' : 'bg-muted/40 border-border'}`}>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={futureAppCode && !isGenerating ? 'default' : 'outline'}
-                className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5"
-              >
-                {futureAppCode && !isGenerating ? 'After — Not Live Yet' : 'After'}
-              </Badge>
-              <div className="flex flex-col leading-tight">
-                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5"><Wand2 className="w-3.5 h-3.5 text-primary"/> Your Site With Changes</span>
-                <span className="text-[11px] text-muted-foreground">What visitors will see after you publish</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 min-h-0 relative overflow-hidden bg-background">
-            {isGenerating ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10 gap-5 px-8">
-                {/* Spinner */}
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-
-                {/* Step label from RTDB */}
-                <p className="text-secondary-foreground font-medium text-center animate-pulse">
-                  {genProgress.step || 'Building your changes…'}
-                </p>
-
-                {/* Progress bar — only shown when RTDB has a real value */}
-                {genProgress.progress > 0 && (
-                  <div className="w-full max-w-xs">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                      <span>Progress</span>
-                      <span>{genProgress.progress}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${genProgress.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : futureAppCode ? (
-              <VisualInspector htmlContent={futureAppCode} title="Your Site With Changes" isPreview />
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-4 px-8 text-center">
-                <Sparkles className="w-16 h-16 text-primary/40" />
-                <p className="font-medium">Tell us what to change below.<br/>You'll see how your site will look here before you publish.</p>
-              </div>
-            )}
-
-            {/* Publish / Discard bar fixed at bottom of this pane */}
-            {futureAppCode && !isGenerating && (
-              <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2">
-                <div className="bg-background/95 backdrop-blur-sm border border-primary/30 rounded-lg p-3 shadow-xl">
-                  <p className="text-xs text-muted-foreground mb-2 text-center">
-                    Happy with how it looks? Publishing updates your live site for everyone.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      onClick={handleDiscard}
-                      className="gap-2 text-muted-foreground hover:text-destructive"
-                      title="Discard changes"
-                    >
-                      <Trash2 className="w-4 h-4"/> Discard
-                    </Button>
-                    <Button
-                      onClick={() => setConfirmOpen(true)}
-                      className="flex-1 shadow-lg shadow-primary/20 h-11 text-base gap-2 bg-gradient-to-r from-primary to-blue-600 hover:scale-[1.01] transition-transform"
-                    >
-                      <Rocket className="w-5 h-5"/> Publish to Live Site
-                    </Button>
-                  </div>
+      {/* Main Content Space */}
+      <div className="flex-1 p-5 overflow-hidden">
+        <div className="mx-auto h-full flex flex-col lg:flex-row gap-5 max-w-[1600px]">
+          
+          {/* LEFT COLUMN: Input & Current Site */}
+          <div className="w-full lg:w-[450px] xl:w-[500px] flex flex-col gap-5 shrink-0 h-full overflow-y-auto pr-1">
+            
+            {/* AI Studio Assistant Block */}
+            <SectionBlock 
+              title="AI Studio Assistant" 
+              subtitle="Describe changes or new components you need"
+              icon={<Bot className="w-4 h-4 text-indigo-500" />}
+              className="shrink-0"
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+			          <span className="text-xs font-bold uppercase tracking-widest text-indigo-500">What changes do you want?</span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGetIdeas}
+                    disabled={ideasLoading || !activeProject}
+                    className="h-7 text-[10px] text-muted-foreground hover:text-indigo-500 shrink-0"
+                    title="Not sure what to change? Get 5 ideas tailored to your site."
+                  >
+                    {ideasLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Lightbulb className="w-3 h-3 text-yellow-500 mr-1"/>}
+                    {ideasLoading ? 'Thinking…' : 'Get ideas'}
+                  </Button>
+                  <Select value={model} onValueChange={setModel}>
+                    <SelectTrigger className="h-7 text-[10px] bg-muted/40 border-border max-w-[130px] shrink-0">
+                      <SelectValue placeholder="Select Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="claude-opus-4-5">Claude Opus 4.5</SelectItem>
+                      <SelectItem value="claude-sonnet-4-5">Claude Sonnet 4.5</SelectItem>
+                      <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro</SelectItem>
+                      <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
+
+              {showIdeas && (
+                <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 relative mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowIdeas(false)}
+                    className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4"/>
+                  </button>
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-2">
+                    <Lightbulb className="w-3.5 h-3.5 text-yellow-500"/> Ideas for your site
+                  </p>
+                  {ideasLoading ? (
+                     <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                       <Loader2 className="w-3 h-3 animate-spin"/> Coming up with tailored ideas…
+                     </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {ideas.map((idea, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => { setPrompt(idea.prompt || idea.title); setShowIdeas(false); }}
+                          className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-indigo-500/40 hover:bg-indigo-500/5 text-left transition-colors"
+                          title={idea.prompt}
+                        >
+                          {idea.title}
+                        </button>
+                      ))}
+                      {ideas.length === 0 && <span className="text-xs text-muted-foreground">No ideas returned.</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="relative group">
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe your changes... e.g. 'Redesign the hero section'"
+                  className="resize-none min-h-[100px] pr-16 bg-card border-border focus-visible:ring-indigo-500/50 text-sm py-3 shadow-sm rounded-xl"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleGenerate();
+                    }
+                  }}
+                />
+                <Button 
+                  size="icon"
+                  className="absolute right-2 bottom-2 h-9 w-9 bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-transform group-focus-within:scale-105 rounded-lg"
+                  disabled={!prompt.trim() || isGenerating}
+                  onClick={handleGenerate}
+                >
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white ml-0.5" />}
+                </Button>
+              </div>
+
+               {/* Brand Detection Banner placed right under prompt if triggered */}
+               {brandDetected && (
+                 <div className="mt-4 border border-indigo-500/30 bg-indigo-500/5 rounded-lg p-3 flex flex-col gap-3">
+                   <div className="flex items-center gap-2 text-xs">
+                     <Palette className="w-4 h-4 text-indigo-400 shrink-0" />
+                     <span className="text-foreground font-medium flex-1">Brand signals detected</span>
+                     <button
+                       type="button"
+                       onClick={() => setBrandDetected(null)}
+                       className="text-muted-foreground hover:text-foreground shrink-0"
+                     >
+                       <X className="w-3.5 h-3.5" />
+                     </button>
+                   </div>
+                   <Button
+                     size="sm"
+                     variant="outline"
+                     className="w-full text-xs h-8 bg-card border-indigo-500/40 text-indigo-500 hover:bg-indigo-500/10"
+                     onClick={() => setBrandDialogOpen(true)}
+                   >
+                     Review & Save to Brand Kit
+                   </Button>
+                 </div>
+               )}
+            </SectionBlock>
+
+            {/* Current Site View Block */}
+            <SectionBlock
+              title="Your Site Now"
+              subtitle="Current production view"
+              icon={<Eye className="w-4 h-4 text-emerald-500" />}
+              className="flex-1 min-h-[300px] flex flex-col"
+            >
+              <div className="flex-1 min-h-0 bg-background overflow-hidden relative -mx-5 -mb-5 mt-2 border-t border-border rounded-b-xl">
+                 <LiveSitePreview initialUrl={activeProject?.domain} title="Your Site" />
+              </div>
+            </SectionBlock>
           </div>
+
+          {/* RIGHT COLUMN: Visual Preview */}
+          <div className="flex-1 flex flex-col min-w-0">
+             <SectionBlock
+               title="Preview Workspace"
+               subtitle="Review staging changes before publishing"
+               icon={<MonitorSmartphone className="w-4 h-4 text-blue-500" />}
+               className="flex-1 h-full flex flex-col shadow-sm"
+               hasWrapper={false}
+             >
+               <div className="flex-1 relative bg-background overflow-hidden flex flex-col -mx-5 -mb-5 mt-2 border-t border-border rounded-b-xl">
+                  {isGenerating ? (
+                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm z-10 gap-5 px-8">
+                       <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                       <p className="text-secondary-foreground font-medium text-center animate-pulse">
+                         {genProgress.step || 'Building your changes…'}
+                       </p>
+                       {genProgress.progress > 0 && (
+                         <div className="w-full max-w-xs">
+                           <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                             <span>Progress</span>
+                             <span>{genProgress.progress}%</span>
+                           </div>
+                           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                             <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${genProgress.progress}%` }} />
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                  ) : futureAppCode ? (
+                     <VisualInspector htmlContent={futureAppCode} title="Your Preview" isPreview />
+                  ) : (
+                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-4 px-8 text-center bg-muted/10">
+                       <Wand2 className="w-16 h-16 text-indigo-500/40" />
+                       <p className="font-medium text-sm">Tell us what to change on the left.<br/>You'll see your live preview here.</p>
+                     </div>
+                  )}
+               </div>
+
+               {/* Publish / Discard bar overlay fixed at bottom of the preview pane */}
+               {futureAppCode && !isGenerating && (
+                  <div className="absolute bottom-5 left-5 right-5 z-20 flex flex-col gap-2 mx-auto max-w-lg">
+                    <div className="bg-card/95 backdrop-blur-md border border-indigo-500/30 rounded-xl p-3 shadow-2xl">
+                      <div className="flex gap-2">
+                        <Button variant="ghost" onClick={handleDiscard} className="text-muted-foreground hover:text-destructive w-1/3">
+                           <Trash2 className="w-4 h-4 mr-2"/> Discard
+                        </Button>
+                        <Button 
+                          onClick={() => setConfirmOpen(true)} 
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
+                        >
+                           <CheckCircle2 className="w-4 h-4 mr-2"/> Publish Changes Now
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+               )}
+             </SectionBlock>
+          </div>
+
         </div>
       </div>
 
@@ -381,7 +498,7 @@ export const WorkspaceStudioPage = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-primary"/>
+              <Rocket className="w-5 h-5 text-indigo-600"/>
               Publish changes to your live site?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -393,52 +510,15 @@ export const WorkspaceStudioPage = () => {
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handlePushCode(); }}
               disabled={isPublishing}
-              className="bg-gradient-to-r from-primary to-blue-600 gap-2"
+              className="bg-indigo-600 hover:bg-indigo-700 gap-2 text-white"
             >
-              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Rocket className="w-4 h-4"/>}
+              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle2 className="w-4 h-4"/>}
               {isPublishing ? 'Publishing…' : 'Yes, publish now'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Brand Detection Banner ── */}
-      {brandDetected && (
-        <div className="shrink-0 border-t border-indigo-500/30 bg-indigo-500/5 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap z-30">
-          <div className="flex items-center gap-2 text-sm">
-            <Palette className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span className="text-foreground font-medium">This change touches your branding</span>
-            <span className="text-muted-foreground text-xs hidden sm:inline">
-              — {[
-                brandDetected.colors.length > 0 && `${brandDetected.colors.length} color${brandDetected.colors.length > 1 ? 's' : ''}`,
-                brandDetected.fonts.length > 0  && `${brandDetected.fonts.length} font${brandDetected.fonts.length > 1 ? 's' : ''}`,
-                brandDetected.hasBrandContext   && 'brand language',
-              ].filter(Boolean).join(', ')} detected.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 gap-1.5 text-xs border-indigo-500/40 hover:border-indigo-500 text-indigo-400 hover:text-indigo-300"
-              onClick={() => setBrandDialogOpen(true)}
-            >
-              <Palette className="w-3.5 h-3.5" />
-              Save to Brand Kit
-            </Button>
-            <button
-              type="button"
-              onClick={() => setBrandDetected(null)}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="Dismiss brand suggestion"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Brand Kit Quick-Edit Dialog */}
       <Dialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
           <DialogHeader className="px-6 pt-6 pb-0">
@@ -466,100 +546,6 @@ export const WorkspaceStudioPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bottom Bar: AI Target Command */}
-      <div className="shrink-0 border-t border-border bg-card p-4 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] relative z-30">
-        <div className="max-w-5xl mx-auto flex flex-col gap-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary">What changes do you want?</span>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGetIdeas}
-                disabled={ideasLoading || !activeProject}
-                className="h-8 gap-1.5 text-xs"
-                title="Not sure what to change? Get 5 ideas tailored to your site."
-              >
-                {ideasLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Lightbulb className="w-3.5 h-3.5 text-yellow-500"/>}
-                {ideasLoading ? 'Thinking…' : 'Get ideas'}
-              </Button>
-              <span className="text-xs text-muted-foreground">Model:</span>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger className="w-[160px] h-8 text-xs bg-muted/40 border-border">
-                  <SelectValue placeholder="Select Model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="claude-opus-4-5">Claude Opus 4.5</SelectItem>
-                  <SelectItem value="claude-sonnet-4-5">Claude Sonnet 4.5</SelectItem>
-                  <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro</SelectItem>
-                  <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {showIdeas && (
-            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 relative">
-              <button
-                type="button"
-                onClick={() => setShowIdeas(false)}
-                className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-                aria-label="Close ideas"
-              >
-                <X className="w-4 h-4"/>
-              </button>
-              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-2">
-                <Lightbulb className="w-3.5 h-3.5 text-yellow-500"/> Ideas for your site — click one to use it
-              </p>
-              {ideasLoading ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin"/> Coming up with ideas tailored to your site…
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {ideas.map((idea, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => { setPrompt(idea.prompt || idea.title); setShowIdeas(false); }}
-                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:border-primary/60 hover:bg-primary/5 text-left transition-colors"
-                      title={idea.prompt}
-                    >
-                      {idea.title}
-                    </button>
-                  ))}
-                  {ideas.length === 0 && (
-                    <span className="text-xs text-muted-foreground">No ideas returned.</span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          <div className="relative group">
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what you want to change — for example, 'make the header dark blue' or 'add a contact form in the footer'."
-              className="resize-none min-h-[80px] pr-16 bg-muted/20 border-border focus-visible:ring-primary/50 text-base py-3"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleGenerate();
-                }
-              }}
-            />
-            <Button 
-              size="icon"
-              className="absolute right-3 bottom-3 h-10 w-10 shadow-md transition-transform group-focus-within:scale-105"
-              disabled={!prompt.trim() || isGenerating}
-              onClick={handleGenerate}
-            >
-              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

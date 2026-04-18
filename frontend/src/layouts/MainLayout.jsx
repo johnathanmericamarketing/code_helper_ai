@@ -5,14 +5,15 @@ import { Header } from '@/components/Header';
 
 export const MainLayout = () => {
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-slate-50 dark:bg-background overflow-hidden relative">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto w-full h-full">
-          <div className="container mx-auto p-4 md:p-6 w-full h-full max-w-none">
-            <Outlet />
-          </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile Header only */}
+        <div className="md:hidden z-20">
+          <Header />
+        </div>
+        <main className="flex-1 overflow-y-auto w-full h-full relative">
+          <Outlet />
         </main>
       </div>
     </div>
