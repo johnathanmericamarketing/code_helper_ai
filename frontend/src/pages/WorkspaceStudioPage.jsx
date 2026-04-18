@@ -6,30 +6,66 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VisualInspector } from '@/components/VisualInspector';
 import { LiveSitePreview } from '@/components/LiveSitePreview';
+import { IntakeWizard } from '@/components/IntakeWizard';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2, Trash2 } from 'lucide-react';
+import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2, Trash2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService, generatedCodeService } from '@/lib/firebase-service';
+import { projectService } from '@/lib/project-service';
 import { useProject } from '@/context/ProjectContext';
 import Editor from '@monaco-editor/react';
 
 export const WorkspaceStudioPage = () => {
-  const { activeProject } = useProject();
+  const { activeProject, refreshActiveProject } = useProject();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-5');
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // State for the three panes
   const [serverCode, setServerCode] = useState('// Connect to a repository to load active branch code here.\n\nfunction App() {\n  return <div>Hello World</div>;\n}');
   const [currentAppCode, setCurrentAppCode] = useState('<div><h1>Your App</h1><p>This represents the current state of your application UI.</p></div>');
   const [futureAppCode, setFutureAppCode] = useState(null);
-  
+
   const [activeRequestId, setActiveRequestId] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Auto-open intake wizard the first time a user enters the Studio for a
+  // project that hasn't completed intake yet.
+  useEffect(() => {
+    if (activeProject && !activeProject.intake?.completedAt) {
+      setWizardOpen(true);
+    }
+  }, [activeProject?.id, activeProject?.intake?.completedAt]);
+
+  // Build an AI context string from the saved intake + recent change log so
+  // every generation run gets the project's notes without re-entering them.
+  const buildProjectContext = () => {
+    if (!activeProject) return currentAppCode;
+    const parts = [`Current UI:\n${currentAppCode}`];
+    const intake = activeProject.intake;
+    if (intake?.goals?.summary) {
+      parts.push(`Project goals (from intake):\n${intake.goals.summary}`);
+      if (intake.goals.categories?.length) {
+        parts.push(`Focus areas: ${intake.goals.categories.join(', ')}`);
+      }
+      if (intake.goals.pages?.length) {
+        parts.push(`Pages in scope: ${intake.goals.pages.join(', ')}`);
+      }
+    }
+    if (activeProject.siteNotes) {
+      parts.push(`Site notes:\n${activeProject.siteNotes}`);
+    }
+    const log = Array.isArray(activeProject.changeLog) ? activeProject.changeLog.slice(-5) : [];
+    if (log.length) {
+      parts.push(`Recent changes on this site:\n${log.map((e) => `- ${e.summary}`).join('\n')}`);
+    }
+    return parts.join('\n\n');
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !activeProject) {
@@ -51,8 +87,8 @@ export const WorkspaceStudioPage = () => {
       const req = await requestsService.create(rawPayload, activeProject.id);
       setActiveRequestId(req.id);
       
-      // 2. Process with dynamic model override
-      const generated = await requestsService.process(req.id, prompt, currentAppCode, model);
+      // 2. Process with dynamic model override (include intake/notes/changelog context)
+      const generated = await requestsService.process(req.id, prompt, buildProjectContext(), model);
       
       if (generated && generated.code_changes && generated.code_changes.length > 0) {
         // Find HTML/React changes suitable for the visual inspector, otherwise fallback to the first diff
@@ -78,6 +114,20 @@ export const WorkspaceStudioPage = () => {
     setIsPublishing(true);
     try {
       await requestsService.updateStatus(activeRequestId, 'approved');
+      // Save a friendly entry to the project's change log so the user can see
+      // a timeline of what they've published over time.
+      if (activeProject?.id) {
+        try {
+          await projectService.appendChangeLog(activeProject.id, {
+            summary: prompt.trim().slice(0, 200) || 'Published a change',
+            requestId: activeRequestId,
+            model,
+          });
+          refreshActiveProject?.();
+        } catch (logErr) {
+          console.warn('Could not append change log entry', logErr);
+        }
+      }
       toast.success('Your changes are now live!');
       setCurrentAppCode(futureAppCode);
       setFutureAppCode(null);
@@ -106,7 +156,23 @@ export const WorkspaceStudioPage = () => {
         <div className="flex flex-col h-full bg-[#1e1e1e]">
           <div className="h-10 border-b border-white/10 flex items-center px-4 bg-[#252526] text-white/70 text-xs font-semibold justify-between shrink-0">
             <span className="flex items-center gap-2 uppercase tracking-wider"><FileCode2 className="w-3.5 h-3.5"/> Your Code From Server</span>
-            <Badge variant="outline" className="border-white/20 text-white/50 bg-transparent scale-90">Read Only</Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setWizardOpen(true)}
+                disabled={!activeProject}
+                className="h-7 text-[11px] text-white/70 hover:text-white hover:bg-white/10 gap-1"
+                title="Site info & goals"
+              >
+                <Settings2 className="w-3.5 h-3.5"/>
+                Site info
+                {activeProject?.intake?.completedAt && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-success ml-0.5" />
+                )}
+              </Button>
+              <Badge variant="outline" className="border-white/20 text-white/50 bg-transparent scale-90">Read Only</Badge>
+            </div>
           </div>
           <div className="flex-1 min-h-0 relative">
             <Editor
@@ -195,6 +261,13 @@ export const WorkspaceStudioPage = () => {
           </div>
         </div>
       </div>
+
+      <IntakeWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        project={activeProject}
+        onComplete={() => refreshActiveProject?.()}
+      />
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
