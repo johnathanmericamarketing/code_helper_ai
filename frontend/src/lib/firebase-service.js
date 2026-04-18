@@ -45,12 +45,13 @@ function normalizeDates(doc, fields = ['created_at', 'updated_at']) {
 const REQUESTS_COL = 'code_requests';
 
 export const requestsService = {
-  async create(data) {
+  async create(data, projectId = null) {
     const id = uuidv4();
     const now = new Date();
     const doc = {
       id,
       userId: auth.currentUser?.uid,
+      projectId: projectId || localStorage.getItem('codehelper_active_project') || null,
       raw_request: data.raw_request,
       urgency: data.urgency || null,
       area_of_app: data.area_of_app || null,
@@ -65,10 +66,13 @@ export const requestsService = {
     return doc;
   },
 
-  async list() {
-    const snap = await getDocs(
-      query(collection(db, REQUESTS_COL), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
-    );
+  async list(projectId = null) {
+    let q = query(collection(db, REQUESTS_COL), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'));
+    const activeProject = projectId || localStorage.getItem('codehelper_active_project');
+    if (activeProject) {
+      q = query(collection(db, REQUESTS_COL), where('userId', '==', auth.currentUser?.uid), where('projectId', '==', activeProject), orderBy('created_at', 'desc'));
+    }
+    const snap = await getDocs(q);
     return snap.docs.map((d) => normalizeDates(d.data()));
   },
 
@@ -120,17 +124,21 @@ export const generatedCodeService = {
 // ─────────────────────────────────────────────
 
 export const knowledgeService = {
-  async list() {
-    const snap = await getDocs(
-      query(collection(db, 'knowledge_base'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
-    );
+  async list(projectId = null) {
+    let q = query(collection(db, 'knowledge_base'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'));
+    const activeProject = projectId || localStorage.getItem('codehelper_active_project');
+    if (activeProject) {
+      q = query(collection(db, 'knowledge_base'), where('userId', '==', auth.currentUser?.uid), where('projectId', '==', activeProject), orderBy('created_at', 'desc'));
+    }
+    const snap = await getDocs(q);
     return snap.docs.map((d) => normalizeDates(d.data()));
   },
 
-  async create(data) {
+  async create(data, projectId = null) {
     const id = uuidv4();
     const now = new Date();
-    const doc = { id, userId: auth.currentUser?.uid, ...data, created_at: now, updated_at: now };
+    const activeProject = projectId || localStorage.getItem('codehelper_active_project') || null;
+    const doc = { id, userId: auth.currentUser?.uid, projectId: activeProject, ...data, created_at: now, updated_at: now };
     await addDoc(collection(db, 'knowledge_base'), doc);
     return doc;
   },
@@ -158,10 +166,13 @@ export const knowledgeService = {
 // ─────────────────────────────────────────────
 
 export const serversService = {
-  async list() {
-    const snap = await getDocs(
-      query(collection(db, 'servers'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'))
-    );
+  async list(projectId = null) {
+    let q = query(collection(db, 'servers'), where('userId', '==', auth.currentUser?.uid), orderBy('created_at', 'desc'));
+    const activeProject = projectId || localStorage.getItem('codehelper_active_project');
+    if (activeProject) {
+      q = query(collection(db, 'servers'), where('userId', '==', auth.currentUser?.uid), where('projectId', '==', activeProject), orderBy('created_at', 'desc'));
+    }
+    const snap = await getDocs(q);
     return snap.docs.map((d) => {
       const srv = normalizeDates(d.data());
       // Mask sensitive fields on read
@@ -171,12 +182,14 @@ export const serversService = {
     });
   },
 
-  async create(data) {
+  async create(data, projectId = null) {
     const id = uuidv4();
     const now = new Date();
+    const activeProject = projectId || localStorage.getItem('codehelper_active_project') || null;
     const doc = {
       id,
       userId: auth.currentUser?.uid,
+      projectId: activeProject,
       name: data.name,
       server_type: data.server_type,
       host: data.host,

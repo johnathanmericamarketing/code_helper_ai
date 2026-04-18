@@ -8,9 +8,11 @@ import { VisualInspector } from '@/components/VisualInspector';
 import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService, generatedCodeService } from '@/lib/firebase-service';
+import { useProject } from '@/context/ProjectContext';
 import Editor from '@monaco-editor/react';
 
 export const WorkspaceStudioPage = () => {
+  const { activeProject } = useProject();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-5');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,20 +25,23 @@ export const WorkspaceStudioPage = () => {
   const [activeRequestId, setActiveRequestId] = useState(null);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !activeProject) {
+      if (!activeProject) toast.error("Please select a project first.");
+      return;
+    }
     setIsGenerating(true);
     setFutureAppCode(null);
 
     try {
       toast.info('Initializing AI workspace logic...');
       
-      // 1. Create a request footprint
+      // 1. Create a request footprint scoped to project
       const rawPayload = {
         raw_request: prompt,
         urgency: 'high',
         area_of_app: 'frontend'
       };
-      const req = await requestsService.create(rawPayload);
+      const req = await requestsService.create(rawPayload, activeProject.id);
       setActiveRequestId(req.id);
       
       // 2. Process with dynamic model override

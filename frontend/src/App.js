@@ -20,6 +20,8 @@ import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { getUserProfile } from "@/lib/user-service";
 import { LandingPage } from "@/pages/LandingPage";
 
+import { ProjectProvider } from "@/context/ProjectContext";
+
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
   const location = useLocation();
@@ -50,14 +52,15 @@ function App() {
     <AppErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <div className="App">
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                
-                {/* ── Protected Application Routes ── */}
-                <Route path="/app" element={
+          <ProjectProvider>
+            <div className="App">
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  
+                  {/* ── Protected Application Routes ── */}
+                  <Route path="/app" element={
                   <ProtectedRoute>
                     <MainLayout />
                   </ProtectedRoute>
@@ -86,6 +89,7 @@ function App() {
             </BrowserRouter>
             <Toaster position="top-right" richColors />
           </div>
+          </ProjectProvider>
         </AuthProvider>
       </ThemeProvider>
     </AppErrorBoundary>

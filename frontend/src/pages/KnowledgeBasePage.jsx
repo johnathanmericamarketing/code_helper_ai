@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, BookOpen, Code, Shield, Zap, FileCheck, FileText, Star, Search, Filter, Edit, Trash2 } from 'lucide-react';
+import { Plus, BookOpen, Code, Shield, Zap, FileCheck, FileText, Star, Search, Filter, Edit, Trash2, Palette } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,12 @@ import { Textarea } from '@/components/ui/textarea';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { knowledgeService } from '@/lib/firebase-service';
+import { useProject } from '@/context/ProjectContext';
+import { HexColorPicker } from "react-colorful";
 import { toast } from 'sonner';
 
 const categoryIcons = {
+  brand_identity: Palette,
   code_style: Code,
   architecture: BookOpen,
   security: Shield,
@@ -32,6 +35,7 @@ const categoryIcons = {
 };
 
 const categoryColors = {
+  brand_identity: 'bg-indigo-500/10 text-indigo-500',
   code_style: 'bg-primary/10 text-primary',
   architecture: 'bg-info/10 text-info',
   security: 'bg-destructive/10 text-destructive',
@@ -44,6 +48,7 @@ const categoryColors = {
 export const KnowledgeBasePage = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { activeProject } = useProject();
   const [knowledge, setKnowledge] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,15 +65,17 @@ export const KnowledgeBasePage = () => {
     bad_example: '',
     tags: '',
     priority: 5,
+    primaryColor: '#000000',
+    secondaryColor: '#ffffff',
+    accentColor: '#3b82f6',
+    typography: '',
+    tone: '',
   });
 
-  useEffect(() => {
-    fetchKnowledge();
-  }, []);
-
   const fetchKnowledge = async () => {
+    if (!activeProject) return;
     try {
-      const data = await knowledgeService.list();
+      const data = await knowledgeService.list(activeProject.id);
       setKnowledge(data);
     } catch (error) {
       console.error('Error fetching knowledge:', error);
@@ -77,6 +84,15 @@ export const KnowledgeBasePage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeProject) {
+      fetchKnowledge();
+    } else {
+      setKnowledge([]);
+      setLoading(false);
+    }
+  }, [activeProject]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,7 +108,7 @@ export const KnowledgeBasePage = () => {
         await knowledgeService.update(editingItem.id, payload);
         toast.success('Knowledge updated');
       } else {
-        await knowledgeService.create(payload);
+        await knowledgeService.create(payload, activeProject?.id);
         toast.success('Knowledge added');
       }
 
@@ -137,15 +153,12 @@ export const KnowledgeBasePage = () => {
 
   const resetForm = () => {
     setFormData({
-      title: '',
-      category: 'code_style',
-      language: '',
-      framework: '',
-      description: '',
-      code_example: '',
-      bad_example: '',
-      tags: '',
       priority: 5,
+      primaryColor: '#000000',
+      secondaryColor: '#ffffff',
+      accentColor: '#3b82f6',
+      typography: '',
+      tone: '',
     });
   };
 
@@ -206,6 +219,7 @@ export const KnowledgeBasePage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="brand_identity">Brand Identity & Style</SelectItem>
                       <SelectItem value="code_style">Code Style</SelectItem>
                       <SelectItem value="architecture">Architecture</SelectItem>
                       <SelectItem value="security">Security</SelectItem>
@@ -262,33 +276,56 @@ export const KnowledgeBasePage = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="code_example">Good Example (Code)</Label>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <Editor
-                    height="150px"
-                    language="javascript"
-                    theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                    value={formData.code_example}
-                    onChange={(value) => setFormData({ ...formData, code_example: value || '' })}
-                    options={{ minimap: { enabled: false }, fontSize: 13 }}
-                  />
+              {formData.category === 'brand_identity' ? (
+                <div className="space-y-6 bg-muted/30 p-4 rounded-xl border border-border">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {['primaryColor', 'secondaryColor', 'accentColor'].map((colorKey) => (
+                      <div key={colorKey} className="space-y-3 flex flex-col items-center p-3 border border-border bg-card rounded-lg shadow-sm">
+                        <Label className="capitalize">{colorKey.replace('Color', ' Color')}</Label>
+                        <HexColorPicker
+                          color={formData[colorKey]}
+                          onChange={(c) => setFormData({ ...formData, [colorKey]: c })}
+                          className="w-full max-w-[150px] !h-[150px]"
+                        />
+                        <div className="flex w-full mt-2 border border-border rounded-md overflow-hidden bg-background">
+                          <div className="w-8 h-8 shrink-0" style={{ backgroundColor: formData[colorKey] }} />
+                          <Input
+                            className="border-0 focus-visible:ring-0 uppercase h-8 px-2 text-sm text-center"
+                            value={formData[colorKey]}
+                            onChange={(e) => setFormData({ ...formData, [colorKey]: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="typography">Primary Typography / Font</Label>
+                      <Input id="typography" value={formData.typography || ''} onChange={(e) => setFormData({ ...formData, typography: e.target.value })} placeholder="e.g. Inter, sans-serif" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tone">Brand Tone of Voice</Label>
+                      <Input id="tone" value={formData.tone || ''} onChange={(e) => setFormData({ ...formData, tone: e.target.value })} placeholder="e.g. Professional yet friendly" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bad_example">Bad Example (What to Avoid)</Label>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <Editor
-                    height="150px"
-                    language="javascript"
-                    theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                    value={formData.bad_example}
-                    onChange={(value) => setFormData({ ...formData, bad_example: value || '' })}
-                    options={{ minimap: { enabled: false }, fontSize: 13 }}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="code_example">Good Example (Code)</Label>
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <Editor height="150px" language="javascript" theme={theme === 'dark' ? 'vs-dark' : 'light'} value={formData.code_example} onChange={(value) => setFormData({ ...formData, code_example: value || '' })} options={{ minimap: { enabled: false }, fontSize: 13 }} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bad_example">Bad Example (What to Avoid)</Label>
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <Editor height="150px" language="javascript" theme={theme === 'dark' ? 'vs-dark' : 'light'} value={formData.bad_example} onChange={(value) => setFormData({ ...formData, bad_example: value || '' })} options={{ minimap: { enabled: false }, fontSize: 13 }} />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
