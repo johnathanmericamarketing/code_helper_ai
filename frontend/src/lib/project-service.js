@@ -2,9 +2,11 @@ import {
   collection,
   doc,
   addDoc,
+  getDoc,
   getDocs,
   updateDoc,
   deleteDoc,
+  arrayUnion,
   query,
   where,
   orderBy,
@@ -57,9 +59,36 @@ export const projectService = {
     return snap.docs.map((d) => normalizeDates({ id: d.id, ...d.data() }));
   },
 
+  async get(id) {
+    const snap = await getDoc(doc(db, PROJECTS_COL, id));
+    if (!snap.exists()) return null;
+    return normalizeDates({ id: snap.id, ...snap.data() });
+  },
+
   async update(id, updates) {
     const docRef = doc(db, PROJECTS_COL, id);
     await updateDoc(docRef, { ...updates, updated_at: new Date() });
+  },
+
+  async saveIntake(id, intake) {
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, {
+      intake: { ...intake, completedAt: new Date() },
+      updated_at: new Date(),
+    });
+  },
+
+  async updateSiteNotes(id, notes) {
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, { siteNotes: notes, updated_at: new Date() });
+  },
+
+  async appendChangeLog(id, entry) {
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, {
+      changeLog: arrayUnion({ ...entry, at: new Date() }),
+      updated_at: new Date(),
+    });
   },
 
   async delete(id) {

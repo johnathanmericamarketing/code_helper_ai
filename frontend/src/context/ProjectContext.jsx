@@ -59,12 +59,23 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
+  const refreshActiveProject = async () => {
+    if (!activeProject?.id) return null;
+    const fresh = await projectService.get(activeProject.id);
+    if (fresh) {
+      setActiveProject(fresh);
+      setProjects((prev) => prev.map((p) => (p.id === fresh.id ? fresh : p)));
+    }
+    return fresh;
+  };
+
   return (
     <ProjectContext.Provider value={{
       projects,
       activeProject,
       selectProject,
       refreshProjects,
+      refreshActiveProject,
       loading
     }}>
       {children}
