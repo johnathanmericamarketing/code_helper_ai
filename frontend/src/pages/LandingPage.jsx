@@ -2,14 +2,14 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { 
-  FileCode2, 
-  Sparkles, 
-  ShieldCheck, 
-  Zap, 
-  Code2, 
-  ArrowRight, 
-  Database, 
+import {
+  FileCode2,
+  Sparkles,
+  ShieldCheck,
+  Zap,
+  Code2,
+  ArrowRight,
+  Database,
   Layers,
   MousePointer2,
   ImagePlus
@@ -21,7 +21,7 @@ export const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30">
-      
+
       {/* ── Navigation ── */}
       <nav className="border-b border-border/40 bg-background/80 backdrop-blur-md fixed top-0 w-full z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -58,24 +58,24 @@ export const LandingPage = () => {
           <img src="/hero-bg.png" alt="Hero Background" className="w-full h-full object-cover opacity-80 dark:opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
         </div>
-        
+
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-background/50 backdrop-blur-md shadow-sm text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">Powered by Gemini 1.5 & Claude 3.5</span>
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-tight animate-in fade-in slide-in-from-bottom-6 duration-1000">
             Your personal AI <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-blue-600 dark:from-blue-400 dark:to-indigo-300 drop-shadow-sm">
               software engineering
             </span> team.
           </h1>
-          
+
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
             Secure, scalable, and fully customizable. Build applications significantly faster by pairing with elite AI models directly in your browser. Bring your own keys or use ours.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
             <Button size="lg" className="h-14 px-8 text-base shadow-xl shadow-primary/20 w-full sm:w-auto" onClick={() => navigate(currentUser ? '/app' : '/auth')}>
               {currentUser ? 'Enter Workspace' : 'Start Building for Free'}
@@ -95,7 +95,7 @@ export const LandingPage = () => {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Built for Serious Developers</h2>
             <p className="text-muted-foreground text-lg">Everything you need to ship features faster without compromising on quality.</p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />

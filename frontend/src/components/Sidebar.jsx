@@ -1,27 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch, Crown, ImagePlus, ChevronDown } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, FileCode2, ImagePlus, History, BookOpen,
+  GitBranch, Server, Settings, Crown, ChevronDown, Plus, LogOut, Zap
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { getUserProfile } from '@/lib/user-service';
 import { useProject } from '@/context/ProjectContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const navItems = [
-  { to: '/app', icon: LayoutDashboard, label: 'Dashboard', desc: 'Project overview & onboarding' },
-  { to: '/app/studio', icon: FileCode2, label: 'Workspace Studio', desc: 'AI visual code editor' },
-  { to: '/app/assets', icon: ImagePlus, label: 'Asset Studio', desc: 'Generate & manage images' },
-  { to: '/app/history', icon: History, label: 'History', desc: 'Past generations & logs' },
-  { to: '/app/knowledge', icon: BookOpen, label: 'Knowledge Base', desc: 'Brand logic & code styles' },
-  { to: '/app/integrations', icon: GitBranch, label: 'Integrations', desc: 'Connect to Github' },
-  { to: '/app/servers', icon: Server, label: 'Servers', desc: 'Manage project hosting' },
-  { to: '/app/settings', icon: Settings, label: 'Settings', desc: 'API keys & preferences' },
+  { to: '/app',             icon: LayoutDashboard, label: 'Dashboard',       desc: 'Project overview & onboarding',  color: 'text-violet-500',  bg: 'bg-violet-500/10',  activeBg: 'bg-violet-500/15 text-violet-600' },
+  { to: '/app/studio',      icon: FileCode2,        label: 'Workspace Studio',desc: 'AI visual code editor',           color: 'text-blue-500',    bg: 'bg-blue-500/10',    activeBg: 'bg-blue-500/15 text-blue-600' },
+  { to: '/app/assets',      icon: ImagePlus,        label: 'Asset Studio',    desc: 'Generate & manage images',        color: 'text-pink-500',    bg: 'bg-pink-500/10',    activeBg: 'bg-pink-500/15 text-pink-600' },
+  { to: '/app/history',     icon: History,          label: 'History',         desc: 'Past generations & logs',         color: 'text-amber-500',   bg: 'bg-amber-500/10',   activeBg: 'bg-amber-500/15 text-amber-600' },
+  { to: '/app/knowledge',   icon: BookOpen,         label: 'Knowledge Base',  desc: 'Brand logic & code styles',       color: 'text-emerald-500', bg: 'bg-emerald-500/10', activeBg: 'bg-emerald-500/15 text-emerald-600' },
+  { to: '/app/integrations',icon: GitBranch,        label: 'Integrations',    desc: 'Connect to GitHub',               color: 'text-orange-500',  bg: 'bg-orange-500/10',  activeBg: 'bg-orange-500/15 text-orange-600' },
+  { to: '/app/servers',     icon: Server,           label: 'Servers',         desc: 'Manage project hosting',          color: 'text-cyan-500',    bg: 'bg-cyan-500/10',    activeBg: 'bg-cyan-500/15 text-cyan-600' },
+  { to: '/app/settings',    icon: Settings,         label: 'Settings',        desc: 'API keys & preferences',          color: 'text-slate-500',   bg: 'bg-slate-500/10',   activeBg: 'bg-slate-500/15 text-slate-600' },
 ];
 
 export const Sidebar = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const { projects, activeProject, selectProject } = useProject();
 
@@ -32,75 +35,117 @@ export const Sidebar = () => {
       .catch(() => {});
   }, [currentUser]);
 
+  const handleSignOut = () => {
+    import('@/firebase').then(({ auth }) => {
+      import('firebase/auth').then(({ signOut }) => {
+        signOut(auth).then(() => window.location.href = '/');
+      });
+    });
+  };
+
   return (
-    <TooltipProvider delayDuration={300}>
-      <div className="hidden md:flex w-64 bg-card border-r border-border h-screen flex-col sticky top-0">
-        {/* Logo & Project Selector */}
-        <div className="p-4 border-b border-border space-y-4">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-              <FileCode2 className="w-5 h-5 text-primary-foreground" />
+    <TooltipProvider delayDuration={200}>
+      <div className="hidden md:flex w-64 bg-card border-r border-border h-screen flex-col sticky top-0 overflow-hidden">
+        
+        {/* ── Brand Header ── */}
+        <div className="px-4 pt-5 pb-4">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/25">
+              <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-foreground leading-tight">Code Helper</h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">AI Studio</p>
+              <h1 className="text-[15px] font-bold text-foreground leading-none tracking-tight">Code Helper</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">AI Studio</p>
             </div>
           </div>
-          
+
+          {/* ── Project Selector ── */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full justify-between px-3 h-10 border-border/60 bg-muted/20 hover:bg-muted/50">
-                <span className="truncate flex-1 text-left text-sm font-medium">
-                  {activeProject ? activeProject.name : "Select Project"}
+              <button className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-muted/70 transition-all group text-left">
+                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/80 to-violet-500/80 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] text-white font-bold">
+                    {activeProject?.name?.charAt(0)?.toUpperCase() || '?'}
+                  </span>
+                </div>
+                <span className="truncate flex-1 text-sm font-medium text-foreground">
+                  {activeProject ? activeProject.name : 'Select Project'}
                 </span>
-                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-              </Button>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="start">
+            <DropdownMenuContent className="w-56 shadow-xl" align="start" sideOffset={6}>
               {projects.map((p) => (
-                <DropdownMenuItem key={p.id} onSelect={() => selectProject(p)} className="cursor-pointer">
+                <DropdownMenuItem
+                  key={p.id}
+                  onSelect={() => selectProject(p)}
+                  className={cn("cursor-pointer flex items-center gap-2.5 py-2", activeProject?.id === p.id && "bg-primary/10 text-primary font-medium")}
+                >
+                  <div className="w-5 h-5 rounded bg-gradient-to-br from-primary/80 to-violet-500/80 flex items-center justify-center shrink-0">
+                    <span className="text-[9px] text-white font-bold">{p.name?.charAt(0)?.toUpperCase()}</span>
+                  </div>
                   {p.name}
                 </DropdownMenuItem>
               ))}
               {projects.length === 0 && (
-                <div className="p-2 text-xs text-muted-foreground text-center">No projects found.</div>
+                <div className="p-3 text-xs text-muted-foreground text-center">No projects yet</div>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => navigate('/app')}
+                className="cursor-pointer text-primary flex items-center gap-2 font-medium py-2"
+              >
+                <Plus className="w-4 h-4" /> New Project
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {/* ── Navigation ── */}
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto pb-2">
           {navItems.map((item) => (
             <Tooltip key={item.to}>
               <TooltipTrigger asChild>
                 <NavLink
                   to={item.to}
-                  end={item.to === '/'}
+                  end={item.to === '/app'}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-md font-medium transition-all text-sm',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all text-sm group',
                       isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? `${item.activeBg} font-semibold shadow-sm`
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                     )
                   }
                 >
-                  <item.icon className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  {({ isActive }) => (
+                    <>
+                      <div className={cn(
+                        'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all',
+                        isActive ? item.bg : 'bg-transparent group-hover:bg-muted'
+                      )}>
+                        <item.icon className={cn('w-4 h-4', isActive ? item.color : 'text-muted-foreground group-hover:text-foreground')} />
+                      </div>
+                      <span className="truncate">{item.label}</span>
+                      {isActive && (
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current opacity-60" />
+                      )}
+                    </>
+                  )}
                 </NavLink>
               </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs bg-popover border-border shadow-lg ml-2">
-                {item.desc}
+              <TooltipContent side="right" className="text-xs font-medium shadow-xl ml-1">
+                <p className="font-semibold">{item.label}</p>
+                <p className="text-muted-foreground text-[11px]">{item.desc}</p>
               </TooltipContent>
             </Tooltip>
           ))}
 
-          {/* Super Admin Link — only visible to admins */}
+          {/* Admin section */}
           {isAdmin && (
             <>
-              <div className="pt-4 pb-1 px-3">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Admin</p>
+              <div className="pt-3 pb-1 px-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Admin</p>
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -108,39 +153,52 @@ export const Sidebar = () => {
                     to="/admin"
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-3 px-3 py-2.5 rounded-md font-medium transition-all text-sm',
-                        isActive
-                          ? 'bg-yellow-500/20 text-yellow-600'
-                          : 'text-yellow-600/70 hover:bg-yellow-500/10 hover:text-yellow-600'
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all text-sm group',
+                        isActive ? 'bg-yellow-500/15 text-yellow-600 font-semibold' : 'text-yellow-600/70 hover:bg-yellow-500/10 hover:text-yellow-600'
                       )
                     }
                   >
-                    <Crown className="w-4 h-4 shrink-0" />
-                    <span>Super Admin</span>
+                    {({ isActive }) => (
+                      <>
+                        <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-yellow-500/20' : 'group-hover:bg-yellow-500/10')}>
+                          <Crown className="w-4 h-4" />
+                        </div>
+                        <span>Super Admin</span>
+                      </>
+                    )}
                   </NavLink>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs bg-popover border-border shadow-lg ml-2">
-                  Platform administration settings
-                </TooltipContent>
+                <TooltipContent side="right" className="text-xs shadow-xl ml-1">Platform administration</TooltipContent>
               </Tooltip>
             </>
           )}
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-border mt-auto space-y-4">
+        {/* ── User Footer ── */}
+        <div className="p-3 border-t border-border/60">
+          {currentUser && (
+            <div className="flex items-center gap-2.5 px-2 py-2 mb-1">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center shrink-0 shadow-sm">
+                <span className="text-xs font-bold text-white">
+                  {currentUser.displayName?.charAt(0)?.toUpperCase() || currentUser.email?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate leading-none">
+                  {currentUser.displayName || 'User'}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5">{currentUser.email}</p>
+              </div>
+            </div>
+          )}
           <button
-            onClick={() => {
-              import('@/firebase').then(({ auth }) => {
-                import('firebase/auth').then(({ signOut }) => {
-                  signOut(auth).then(() => window.location.href = '/');
-                });
-              });
-            }}
-            className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md font-medium text-sm text-red-500/80 hover:bg-red-500/10 hover:text-red-500 transition-colors"
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all group"
           >
-            <svg className="w-4 h-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            <span className="truncate">Sign Out</span>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-destructive/10">
+              <LogOut className="w-4 h-4" />
+            </div>
+            Sign Out
           </button>
         </div>
       </div>
