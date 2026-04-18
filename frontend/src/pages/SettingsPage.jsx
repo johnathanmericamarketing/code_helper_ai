@@ -508,8 +508,8 @@ export const SettingsPage = () => {
                   <div
                     key={model.id}
                     className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${selectedModel === model.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-muted-foreground'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-muted-foreground'
                       }`}
                     onClick={() => setSelectedModel(model.id)}
                   >

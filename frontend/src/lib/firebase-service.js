@@ -89,13 +89,13 @@ export const requestsService = {
   },
 
   /** Call the processCodeRequest Cloud Function to generate AI code */
-  async process(id, rawRequest, context = '') {
+  async process(id, rawRequest, context = '', overrideModel = null) {
     // You could also update the status to "processing" here if desired
     await requestsService.updateStatus(id, 'generating');
     
     // Call the Cloud Function
     const fn = httpsCallable(functions, 'processCodeRequest');
-    const result = await fn({ requestId: id, rawRequest, context });
+    const result = await fn({ requestId: id, rawRequest, context, overrideModel });
     
     // Return the payload from the Cloud Function
     return result.data;

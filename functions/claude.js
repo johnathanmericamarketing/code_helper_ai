@@ -47,7 +47,7 @@ exports.processCodeRequest = onCall(async (request) => {
   const uid = request.auth.uid;
   const profile = await getUserProfile(uid);
 
-  const model = profile.claude_model || "claude-sonnet-4-5";
+  const model = request.data.overrideModel || profile.claude_model || "claude-sonnet-4-5";
   const isGemini = model.startsWith("gemini");
   
   // Determine which API key to use: BYOK > Platform > error

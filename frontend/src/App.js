@@ -3,7 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/layouts/MainLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
-import { CreateRequestPage } from "@/pages/CreateRequestPage";
+import { WorkspaceStudioPage } from "@/pages/WorkspaceStudioPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { RequestDetailPage } from "@/pages/RequestDetailPage";
 import { KnowledgeBasePage } from "@/pages/KnowledgeBasePage";
@@ -63,7 +63,7 @@ function App() {
                   </ProtectedRoute>
                 }>
                   <Route index element={<DashboardPage />} />
-                  <Route path="create" element={<CreateRequestPage />} />
+                  <Route path="studio" element={<WorkspaceStudioPage />} />
                   <Route path="history" element={<HistoryPage />} />
                   <Route path="request/:id" element={<RequestDetailPage />} />
                   <Route path="knowledge" element={<KnowledgeBasePage />} />

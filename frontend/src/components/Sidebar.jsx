@@ -7,7 +7,7 @@ import { getUserProfile } from '@/lib/user-service';
 
 const navItems = [
   { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/app/create', icon: FileCode2, label: 'New Request' },
+  { to: '/app/studio', icon: FileCode2, label: 'Workspace Studio' },
   { to: '/app/assets', icon: ImagePlus, label: 'Asset Studio' },
   { to: '/app/history', icon: History, label: 'History' },
   { to: '/app/knowledge', icon: BookOpen, label: 'Knowledge Base' },
