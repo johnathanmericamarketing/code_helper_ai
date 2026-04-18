@@ -6,7 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VisualInspector } from '@/components/VisualInspector';
 import { LiveSitePreview } from '@/components/LiveSitePreview';
-import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService, generatedCodeService } from '@/lib/firebase-service';
 import { useProject } from '@/context/ProjectContext';
@@ -24,6 +28,8 @@ export const WorkspaceStudioPage = () => {
   const [futureAppCode, setFutureAppCode] = useState(null);
   
   const [activeRequestId, setActiveRequestId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !activeProject) {
@@ -69,16 +75,25 @@ export const WorkspaceStudioPage = () => {
 
   const handlePushCode = async () => {
     if (!activeRequestId || !futureAppCode) return;
+    setIsPublishing(true);
     try {
       await requestsService.updateStatus(activeRequestId, 'approved');
-      toast.success('Successfully pushed code to production!');
-      // Move future code to current codebase state
+      toast.success('Your changes are now live!');
       setCurrentAppCode(futureAppCode);
       setFutureAppCode(null);
       setPrompt('');
+      setConfirmOpen(false);
     } catch (e) {
-      toast.error('Failed to push code.');
+      toast.error("We couldn't publish your changes. Please try again.");
+    } finally {
+      setIsPublishing(false);
     }
+  };
+
+  const handleDiscard = () => {
+    setFutureAppCode(null);
+    setActiveRequestId(null);
+    toast.info('Changes discarded. Your live site is unchanged.');
   };
 
   return (
@@ -104,10 +119,16 @@ export const WorkspaceStudioPage = () => {
           </div>
         </div>
 
-        {/* Column 2: Your Site (live preview) */}
+        {/* Column 2: Your Site Now */}
         <div className="flex flex-col h-full bg-card relative">
-          <div className="h-10 border-b border-border flex items-center px-4 bg-muted/40 text-foreground/80 text-xs font-semibold shrink-0">
-            <span className="flex items-center gap-2 uppercase tracking-wider"><Eye className="w-3.5 h-3.5 text-primary"/> Your Site Now</span>
+          <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-muted/40 shrink-0">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-muted text-muted-foreground border">Before</Badge>
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-primary"/> Your Site Now</span>
+                <span className="text-[11px] text-muted-foreground">What visitors see today</span>
+              </div>
+            </div>
           </div>
           <div className="flex-1 min-h-0 overflow-hidden bg-background">
             <LiveSitePreview initialUrl={activeProject?.domain} title="Your Site" />
@@ -115,9 +136,20 @@ export const WorkspaceStudioPage = () => {
         </div>
 
         {/* Column 3: Your Site With Changes */}
-        <div className="flex flex-col h-full bg-muted/10 relative border-l border-border/50">
-          <div className="h-10 border-b border-border flex items-center px-4 bg-muted/40 text-foreground/80 text-xs font-semibold shrink-0">
-            <span className="flex items-center gap-2 uppercase tracking-wider"><Wand2 className="w-3.5 h-3.5 text-primary"/> Your Site With Changes</span>
+        <div className={`flex flex-col h-full bg-muted/10 relative border-l ${futureAppCode && !isGenerating ? 'border-primary/60 ring-2 ring-primary/30 ring-inset' : 'border-border/50'}`}>
+          <div className={`h-12 border-b flex items-center justify-between px-4 shrink-0 ${futureAppCode && !isGenerating ? 'bg-primary/5 border-primary/40' : 'bg-muted/40 border-border'}`}>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={futureAppCode && !isGenerating ? 'default' : 'outline'}
+                className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5"
+              >
+                {futureAppCode && !isGenerating ? 'After — Not Live Yet' : 'After'}
+              </Badge>
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5"><Wand2 className="w-3.5 h-3.5 text-primary"/> Your Site With Changes</span>
+                <span className="text-[11px] text-muted-foreground">What visitors will see after you publish</span>
+              </div>
+            </div>
           </div>
           <div className="flex-1 min-h-0 relative overflow-hidden bg-background">
             {isGenerating ? (
@@ -133,21 +165,61 @@ export const WorkspaceStudioPage = () => {
                 <p className="font-medium">Tell us what to change below.<br/>You'll see how your site will look here before you publish.</p>
               </div>
             )}
-            
-            {/* Push Button Container fixed at bottom of this pane */}
+
+            {/* Publish / Discard bar fixed at bottom of this pane */}
             {futureAppCode && !isGenerating && (
-              <div className="absolute bottom-4 left-4 right-4 z-20">
-                <Button 
-                  onClick={handlePushCode}
-                  className="w-full shadow-2xl shadow-primary/30 h-12 text-lg gap-3 bg-gradient-to-r from-primary to-blue-600 hover:scale-[1.02] transition-transform"
-                >
-                  <Rocket className="w-5 h-5"/> Publish These Changes
-                </Button>
+              <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2">
+                <div className="bg-background/95 backdrop-blur-sm border border-primary/30 rounded-lg p-3 shadow-xl">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">
+                    Happy with how it looks? Publishing updates your live site for everyone.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      onClick={handleDiscard}
+                      className="gap-2 text-muted-foreground hover:text-destructive"
+                      title="Discard changes"
+                    >
+                      <Trash2 className="w-4 h-4"/> Discard
+                    </Button>
+                    <Button
+                      onClick={() => setConfirmOpen(true)}
+                      className="flex-1 shadow-lg shadow-primary/20 h-11 text-base gap-2 bg-gradient-to-r from-primary to-blue-600 hover:scale-[1.01] transition-transform"
+                    >
+                      <Rocket className="w-5 h-5"/> Publish to Live Site
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-primary"/>
+              Publish changes to your live site?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Your visitors will see the new version right away. You can always describe new changes afterward, but this replaces what's on your site now.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPublishing}>Not yet</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handlePushCode(); }}
+              disabled={isPublishing}
+              className="bg-gradient-to-r from-primary to-blue-600 gap-2"
+            >
+              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Rocket className="w-4 h-4"/>}
+              {isPublishing ? 'Publishing…' : 'Yes, publish now'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bottom Bar: AI Target Command */}
       <div className="shrink-0 border-t border-border bg-card p-4 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] relative z-30">
