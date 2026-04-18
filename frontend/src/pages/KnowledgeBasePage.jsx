@@ -85,6 +85,7 @@ export const KnowledgeBasePage = () => {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeProject) {
       fetchKnowledge();

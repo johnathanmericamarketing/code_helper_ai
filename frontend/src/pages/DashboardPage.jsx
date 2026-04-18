@@ -27,6 +27,7 @@ export const DashboardPage = () => {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeProject) {
       fetchRequests();
