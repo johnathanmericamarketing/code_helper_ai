@@ -176,6 +176,96 @@ Always respond with valid JSON block (no markdown fences) matching this structur
   }
 });
 
+// ─── suggestIdeas: short list of plain-English change suggestions ──────────
+exports.suggestIdeas = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in");
+
+  const { siteUrl = "", goals = "", siteNotes = "", recentChanges = [] } = request.data || {};
+  const uid = request.auth.uid;
+  const profile = await getUserProfile(uid);
+
+  const model = profile.claude_model || "claude-sonnet-4-5";
+  const isGemini = model.startsWith("gemini");
+  const byokKey = profile.ai_api_key || profile.claude_api_key;
+
+  let apiKey = null;
+  if (byokKey) apiKey = byokKey;
+  else if (isGemini && process.env.GEMINI_PLATFORM_KEY) apiKey = process.env.GEMINI_PLATFORM_KEY;
+  else if (!isGemini && process.env.ANTHROPIC_PLATFORM_KEY) apiKey = process.env.ANTHROPIC_PLATFORM_KEY;
+
+  const systemPrompt = `You suggest concrete, non-technical website improvements for a user who is not a developer.
+Respond ONLY with JSON in this exact shape:
+{ "ideas": [ { "title": "string (max 60 chars)", "prompt": "string — a ready-to-use request the user can submit, written in plain English, max 200 chars" } ] }
+Return 5 ideas. Prompts should be directly actionable change requests (e.g. "Make the homepage hero headline bigger and bolder"), not questions.`;
+
+  const userContent = [
+    siteUrl ? `Site URL: ${siteUrl}` : "",
+    goals ? `User goals: ${goals}` : "",
+    siteNotes ? `Existing site notes: ${siteNotes}` : "",
+    recentChanges.length ? `Recent changes already made:\n${recentChanges.map((s) => `- ${s}`).join("\n")}` : "",
+    "Suggest 5 specific, easy-to-describe improvements the user hasn't done yet. Prefer high-impact visual or UX wins.",
+  ].filter(Boolean).join("\n\n");
+
+  if (!apiKey) {
+    return {
+      mode: "stub",
+      ideas: [
+        { title: "Make the main headline bigger and bolder", prompt: "Make the hero headline on my homepage larger, bolder, and more eye-catching." },
+        { title: "Add a testimonials section", prompt: "Add a testimonials section to the homepage with 3 customer quotes." },
+        { title: "Improve the contact page", prompt: "Add a simple contact form on the contact page with name, email, and message fields." },
+        { title: "Add a clear call-to-action button", prompt: "Add a prominent call-to-action button above the fold on the homepage." },
+        { title: "Make the site faster on mobile", prompt: "Optimize the homepage for mobile: shrink large images and simplify the menu." },
+      ],
+    };
+  }
+
+  try {
+    let responseText = "";
+    let inputTokens = 0, outputTokens = 0;
+
+    if (isGemini) {
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const gm = genAI.getGenerativeModel({ model, systemInstruction: systemPrompt });
+      const result = await gm.generateContent(userContent);
+      const response = await result.response;
+      responseText = response.text();
+      inputTokens = Math.round(userContent.length / 4);
+      outputTokens = Math.round(responseText.length / 4);
+    } else {
+      const Anthropic = require("@anthropic-ai/sdk");
+      const anthropic = new Anthropic({ apiKey });
+      const message = await anthropic.messages.create({
+        model,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userContent }],
+      });
+      responseText = message.content[0].text;
+      inputTokens = message.usage.input_tokens;
+      outputTokens = message.usage.output_tokens;
+    }
+
+    const cleaned = responseText.replace(/```(?:json)?\n?|\n?```/gi, "").trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); } catch {
+      throw new HttpsError("internal", "Failed to parse suggestions as JSON");
+    }
+    if (!Array.isArray(parsed.ideas)) {
+      throw new HttpsError("internal", "AI response missing ideas array");
+    }
+
+    const pricing = AI_PRICING[model] || AI_PRICING["claude-sonnet-4-5"];
+    const costUsd = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+    await recordUsage(uid, inputTokens, outputTokens, costUsd);
+
+    return { mode: "live", ideas: parsed.ideas.slice(0, 5), model, cost_usd: costUsd };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError("internal", "AI API error: " + err.message);
+  }
+});
+
 // ─── Stub response builder ────────────────────────────────────────────────────
 function buildStubResponse(requestId, rawRequest) {
   return {

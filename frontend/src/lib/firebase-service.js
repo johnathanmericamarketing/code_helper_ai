@@ -96,12 +96,19 @@ export const requestsService = {
   async process(id, rawRequest, context = '', overrideModel = null) {
     // You could also update the status to "processing" here if desired
     await requestsService.updateStatus(id, 'generating');
-    
+
     // Call the Cloud Function
     const fn = httpsCallable(functions, 'processCodeRequest');
     const result = await fn({ requestId: id, rawRequest, context, overrideModel });
-    
+
     // Return the payload from the Cloud Function
+    return result.data;
+  },
+
+  /** Call suggestIdeas to get 5 plain-English change suggestions */
+  async suggestIdeas({ siteUrl = '', goals = '', siteNotes = '', recentChanges = [] } = {}) {
+    const fn = httpsCallable(functions, 'suggestIdeas');
+    const result = await fn({ siteUrl, goals, siteNotes, recentChanges });
     return result.data;
   },
 };

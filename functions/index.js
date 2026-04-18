@@ -21,6 +21,7 @@ exports.adminSetUserRole = adminFns.adminSetUserRole;
 exports.adminGetPayments = adminFns.adminGetPayments;
 
 exports.processCodeRequest = claudeFns.processCodeRequest;
+exports.suggestIdeas = claudeFns.suggestIdeas;
 exports.generateImage = mediaFns.generateImage;
 
 exports.createCheckoutSession = stripeFns.createCheckoutSession;

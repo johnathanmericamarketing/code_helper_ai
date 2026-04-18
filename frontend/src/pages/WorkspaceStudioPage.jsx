@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2, Trash2, Settings2 } from 'lucide-react';
+import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2, Trash2, Settings2, Lightbulb, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService, generatedCodeService } from '@/lib/firebase-service';
 import { projectService } from '@/lib/project-service';
@@ -33,6 +33,38 @@ export const WorkspaceStudioPage = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [ideas, setIdeas] = useState([]);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [showIdeas, setShowIdeas] = useState(false);
+
+  const handleGetIdeas = async () => {
+    if (!activeProject) {
+      toast.error('Please select a project first.');
+      return;
+    }
+    setIdeasLoading(true);
+    setShowIdeas(true);
+    try {
+      const intake = activeProject.intake || {};
+      const log = Array.isArray(activeProject.changeLog) ? activeProject.changeLog.slice(-5) : [];
+      const result = await requestsService.suggestIdeas({
+        siteUrl: activeProject.domain || '',
+        goals: intake.goals?.summary || '',
+        siteNotes: activeProject.siteNotes || '',
+        recentChanges: log.map((e) => e.summary).filter(Boolean),
+      });
+      setIdeas(Array.isArray(result.ideas) ? result.ideas : []);
+      if (result.mode === 'stub') {
+        toast.info('Showing example ideas. Add your API key in Settings for AI-tailored suggestions.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Couldn't load ideas. Try again in a moment.");
+      setShowIdeas(false);
+    } finally {
+      setIdeasLoading(false);
+    }
+  };
 
   // Auto-open intake wizard the first time a user enters the Studio for a
   // project that hasn't completed intake yet.
@@ -297,12 +329,24 @@ export const WorkspaceStudioPage = () => {
       {/* Bottom Bar: AI Target Command */}
       <div className="shrink-0 border-t border-border bg-card p-4 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] relative z-30">
         <div className="max-w-5xl mx-auto flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <span className="text-xs font-bold uppercase tracking-widest text-primary">What changes do you want?</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Model Override:</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGetIdeas}
+                disabled={ideasLoading || !activeProject}
+                className="h-8 gap-1.5 text-xs"
+                title="Not sure what to change? Get 5 ideas tailored to your site."
+              >
+                {ideasLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Lightbulb className="w-3.5 h-3.5 text-yellow-500"/>}
+                {ideasLoading ? 'Thinking…' : 'Get ideas'}
+              </Button>
+              <span className="text-xs text-muted-foreground">Model:</span>
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/40 border-border">
+                <SelectTrigger className="w-[160px] h-8 text-xs bg-muted/40 border-border">
                   <SelectValue placeholder="Select Model" />
                 </SelectTrigger>
                 <SelectContent>
@@ -314,6 +358,44 @@ export const WorkspaceStudioPage = () => {
               </Select>
             </div>
           </div>
+
+          {showIdeas && (
+            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 relative">
+              <button
+                type="button"
+                onClick={() => setShowIdeas(false)}
+                className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                aria-label="Close ideas"
+              >
+                <X className="w-4 h-4"/>
+              </button>
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-2">
+                <Lightbulb className="w-3.5 h-3.5 text-yellow-500"/> Ideas for your site — click one to use it
+              </p>
+              {ideasLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin"/> Coming up with ideas tailored to your site…
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {ideas.map((idea, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => { setPrompt(idea.prompt || idea.title); setShowIdeas(false); }}
+                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:border-primary/60 hover:bg-primary/5 text-left transition-colors"
+                      title={idea.prompt}
+                    >
+                      {idea.title}
+                    </button>
+                  ))}
+                  {ideas.length === 0 && (
+                    <span className="text-xs text-muted-foreground">No ideas returned.</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div className="relative group">
             <Textarea
               value={prompt}
