@@ -3,7 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Globe, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Globe, RefreshCw, ExternalLink, AlertTriangle, Monitor, Smartphone } from 'lucide-react';
+
+const VIEWPORTS = {
+  desktop: { width: null, label: 'Desktop' },   // null = fill container
+  mobile:  { width: 390,  label: 'Mobile' },    // iPhone 14 Pro-ish
+};
 
 function normalizeUrl(raw) {
   if (!raw) return '';
@@ -20,6 +25,7 @@ export const LiveSitePreview = ({ initialUrl = '', title = 'Your Site' }) => {
   const [iframeKey, setIframeKey] = useState(0);
   const [isLoading, setIsLoading] = useState(Boolean(normalizedInitial));
   const [maybeBlocked, setMaybeBlocked] = useState(false);
+  const [viewport, setViewport] = useState('desktop');
   const loadTimerRef = useRef(null);
 
   useEffect(() => {
@@ -106,6 +112,33 @@ export const LiveSitePreview = ({ initialUrl = '', title = 'Your Site' }) => {
           />
         </div>
 
+        <div className="flex items-center border border-border/50 rounded-md overflow-hidden shrink-0">
+          <Button
+            type="button"
+            variant={viewport === 'desktop' ? 'secondary' : 'ghost'}
+            size="icon"
+            onClick={() => setViewport('desktop')}
+            className="h-8 w-8 rounded-none"
+            title="Desktop view"
+            aria-label="Desktop view"
+            aria-pressed={viewport === 'desktop'}
+          >
+            <Monitor className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant={viewport === 'mobile' ? 'secondary' : 'ghost'}
+            size="icon"
+            onClick={() => setViewport('mobile')}
+            className="h-8 w-8 rounded-none border-l border-border/50"
+            title="Mobile view"
+            aria-label="Mobile view"
+            aria-pressed={viewport === 'mobile'}
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+
         <Button
           type="button"
           variant="outline"
@@ -135,14 +168,17 @@ export const LiveSitePreview = ({ initialUrl = '', title = 'Your Site' }) => {
           </div>
         ) : (
           <>
-            <iframe
-              key={iframeKey}
-              src={loadedUrl}
-              onLoad={handleIframeLoad}
-              className="w-full h-full min-h-[500px] border-0 bg-white"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              title={title}
-            />
+            <div className={`absolute inset-0 flex items-start justify-center overflow-auto ${viewport === 'mobile' ? 'bg-muted/40 p-4' : ''}`}>
+              <iframe
+                key={iframeKey}
+                src={loadedUrl}
+                onLoad={handleIframeLoad}
+                style={viewport === 'mobile' ? { width: VIEWPORTS.mobile.width, maxWidth: '100%' } : undefined}
+                className={`h-full min-h-[500px] border-0 bg-white ${viewport === 'mobile' ? 'shadow-xl rounded-lg border border-border' : 'w-full'}`}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                title={title}
+              />
+            </div>
 
             {isLoading && (
               <div className="absolute top-2 right-2 bg-background/90 border border-border rounded-md px-2 py-1 text-[11px] text-muted-foreground flex items-center gap-1.5 shadow-sm">

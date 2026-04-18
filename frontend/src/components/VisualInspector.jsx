@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MousePointer2, ImagePlus, Loader2, Maximize } from 'lucide-react';
+import { MousePointer2, ImagePlus, Loader2, Maximize, Monitor, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateImage } from '@/lib/media-service';
 
@@ -18,6 +18,7 @@ export const VisualInspector = ({
   const [selectedElement, setSelectedElement] = useState(null); // { id, tagName, width, height }
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [viewport, setViewport] = useState('desktop');
   
   // Prepare html with injected script
   const inspectorScript = `
@@ -187,9 +188,29 @@ export const VisualInspector = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* URL Bar simulation */}
-            <div className="hidden md:flex items-center bg-background/80 border border-border/50 rounded-md px-3 py-1 shadow-sm h-8 w-[240px]">
-              <span className="text-[11px] text-muted-foreground truncate w-full">app.localhost/preview</span>
+            <div className="flex items-center border border-border/50 rounded-md overflow-hidden">
+              <Button
+                type="button"
+                variant={viewport === 'desktop' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewport('desktop')}
+                className="h-8 w-8 rounded-none"
+                title="Desktop view"
+                aria-pressed={viewport === 'desktop'}
+              >
+                <Monitor className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant={viewport === 'mobile' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewport('mobile')}
+                className="h-8 w-8 rounded-none border-l border-border/50"
+                title="Mobile view"
+                aria-pressed={viewport === 'mobile'}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+              </Button>
             </div>
 
             {isPreview ? (
@@ -205,11 +226,12 @@ export const VisualInspector = ({
         </div>
         
         {/* Iframe Container with dot pattern background */}
-        <CardContent className="p-0 flex-1 relative bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+        <CardContent className={`p-0 flex-1 relative bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] ${viewport === 'mobile' ? 'flex items-start justify-center p-4 overflow-auto bg-muted/40' : ''}`}>
           <iframe
             ref={iframeRef}
             srcDoc={finalHtml}
-            className="w-full h-full min-h-[500px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]"
+            style={viewport === 'mobile' ? { width: 390, maxWidth: '100%' } : undefined}
+            className={`h-full min-h-[500px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] ${viewport === 'mobile' ? 'shadow-xl rounded-lg border border-border bg-white' : 'w-full'}`}
             sandbox="allow-scripts allow-same-origin"
             title="Visual Inspector"
           />

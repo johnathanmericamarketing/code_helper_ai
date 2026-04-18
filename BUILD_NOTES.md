@@ -193,6 +193,7 @@ Address before production: move creds to Secret Manager / KMS; wire Stripe signa
 
 Append one line per meaningful shipped change. Most recent first.
 
+- `2026-04-18` · branch `claude/review-requirements-T9xHd` · Desktop/Mobile viewport toggle on both `LiveSitePreview` and `VisualInspector` (iconed segmented control; mobile = 390px-wide framed preview with scroll + drop shadow). Works on "Your Site Now" and "Your Site With Changes" panes.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · "Get ideas" button in Studio (new `suggestIdeas` Cloud Function — Claude/Gemini, BYOK-aware, stub fallback) + rewrite of `/app/history` as a plain-language "My Changes" timeline grouped by month, driven by `project.changeLog`, with CSV report download.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · IntakeWizard (3-step: backup / goals / connection) + Studio auto-open + "Site info" button + `changeLog` append on publish + project intake/notes piped into AI context.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · Fixed SettingsPage blank-screen crash (`CLAUDE_MODELS` → `AI_MODELS`, two refs).
