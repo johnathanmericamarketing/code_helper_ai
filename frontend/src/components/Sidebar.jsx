@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  LayoutTemplate, FolderKanban, Layers3, History, FileCode2,
+  LayoutTemplate, FolderKanban, Layers3, History, Palette,
   Settings, Crown, ChevronDown, Plus, LogOut, PanelLeftClose, PanelLeftOpen,
-  Bot, Bell
+  Bot, Bell, Link2, ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -15,14 +15,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navItems = [
-  { to: '/app',              icon: FolderKanban,   label: 'Dashboard' },
-  { to: '/app/studio',       icon: LayoutTemplate, label: 'Workspace Studio' },
-  { to: '/app/assets',       icon: Layers3,        label: 'Asset Studio' },
-  { to: '/app/history',      icon: History,        label: 'History' },
-  { to: '/app/knowledge',    icon: FileCode2,      label: 'Knowledge Base' },
-  { to: '/app/integrations', icon: Layers3,        label: 'Integrations' },
-  { to: '/app/servers',      icon: Layers3,        label: 'Servers' },
-  { to: '/app/settings',     icon: Settings,       label: 'Settings' },
+  { to: '/app/projects', exact: true,  icon: FolderKanban,   label: 'Projects'     },
+  { to: '/app/studio',               icon: LayoutTemplate, label: 'Studio'       },
+  { to: '/app/brand',                icon: Palette,        label: 'Brand'        },
+  { to: '/app/assets',               icon: ImageIcon,      label: 'Assets'       },
+  { to: '/app/versions',             icon: Layers3,        label: 'Versions'     },
+  { to: '/app/connections',          icon: Link2,          label: 'Connections'  },
+  { to: '/app/settings',             icon: Settings,       label: 'Settings'     },
 ];
 
 export const Sidebar = () => {
@@ -51,6 +50,14 @@ export const Sidebar = () => {
   const initials = (currentUser?.displayName || currentUser?.email || 'U')
     .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
+  // Determine active state for nav items (handle /app index → /app/projects)
+  const isNavActive = (item) => {
+    if (item.to === '/app/projects') {
+      return location.pathname === '/app' || location.pathname === '/app/projects';
+    }
+    return location.pathname.startsWith(item.to);
+  };
+
   return (
     <motion.aside
       initial={{ width: 280 }}
@@ -59,6 +66,7 @@ export const Sidebar = () => {
       className="hidden md:flex border-r border-border bg-card flex-col h-screen sticky top-0 overflow-hidden shadow-sm z-30"
     >
       <div className="flex h-full flex-col">
+
         {/* Brand Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-4 shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
@@ -68,11 +76,16 @@ export const Sidebar = () => {
             {!collapsed && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0">
                 <div className="text-sm font-semibold text-foreground truncate">Code Helper AI</div>
-                <div className="text-xs text-muted-foreground truncate">AI workspace studio</div>
+                <div className="text-xs text-muted-foreground truncate">Website workspace</div>
               </motion.div>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="rounded-xl shrink-0 text-muted-foreground hover:text-foreground" onClick={() => setCollapsed(!collapsed)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setCollapsed(!collapsed)}
+          >
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
         </div>
@@ -88,8 +101,10 @@ export const Sidebar = () => {
                   </div>
                   {!collapsed && (
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-foreground">{activeProject ? activeProject.name : 'Select Project'}</div>
-                      <div className="text-xs text-muted-foreground truncate">Project workspace</div>
+                      <div className="truncate text-sm font-medium text-foreground">
+                        {activeProject ? activeProject.name : 'Select Project'}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">Current project</div>
                     </div>
                   )}
                 </div>
@@ -111,7 +126,7 @@ export const Sidebar = () => {
               ))}
               {projects.length === 0 && <div className="p-3 text-xs text-muted-foreground text-center">No projects yet</div>}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate('/app')} className="cursor-pointer text-primary flex items-center gap-2 font-medium py-2">
+              <DropdownMenuItem onSelect={() => navigate('/app/projects')} className="cursor-pointer text-primary flex items-center gap-2 font-medium py-2">
                 <Plus className="w-4 h-4" /> New Project
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -121,7 +136,7 @@ export const Sidebar = () => {
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = item.to === '/app' ? location.pathname === '/app' : location.pathname.startsWith(item.to);
+            const active = isNavActive(item);
             const Icon = item.icon;
             return (
               <NavLink
@@ -129,7 +144,9 @@ export const Sidebar = () => {
                 to={item.to}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition',
-                  isActive ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  active
+                    ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
                 title={collapsed ? item.label : undefined}
               >
@@ -139,6 +156,7 @@ export const Sidebar = () => {
             );
           })}
 
+          {/* Admin section */}
           {isAdmin && (
             <>
               {!collapsed && <div className="pt-4 pb-2 px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Admin</div>}
@@ -158,7 +176,7 @@ export const Sidebar = () => {
           )}
         </nav>
 
-        {/* Context / Maya Assistant Info block */}
+        {/* Maya Assistant card */}
         {!collapsed && (
           <div className="mt-4 px-3 mb-2 shrink-0">
             <div className="rounded-2xl border border-border bg-muted/30 p-3">
@@ -168,20 +186,20 @@ export const Sidebar = () => {
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-foreground truncate">Maya Assistant</div>
-                  <div className="text-xs text-muted-foreground truncate">Helping shape safer edits</div>
+                  <div className="text-xs text-muted-foreground truncate">Safer, clearer website changes</div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Quick Tools Header */}
+        {/* Quick Tools */}
         <div className="px-3 pb-2 flex gap-2 justify-center shrink-0">
-           <ThemeToggle />
-           <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground">
-             <Bell className="w-4 h-4" />
-             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ring-card" />
-           </Button>
+          <ThemeToggle />
+          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground">
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ring-card" />
+          </Button>
         </div>
 
         {/* User Footer */}
@@ -213,8 +231,8 @@ export const Sidebar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
       </div>
     </motion.aside>
   );
 };
-

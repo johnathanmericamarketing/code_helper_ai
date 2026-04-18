@@ -1,19 +1,23 @@
 import React from 'react';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileCode2, LayoutDashboard, History, Settings, BookOpen, Server, GitBranch, X, Menu } from 'lucide-react';
+import {
+  FolderKanban, LayoutTemplate, Palette, ImageIcon,
+  Layers3, Link2, Settings, X, Menu
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
+// ── Nav items — mirrors desktop Sidebar ──────────────────────────────────────
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/create', icon: FileCode2, label: 'New Request' },
-  { to: '/history', icon: History, label: 'History' },
-  { to: '/knowledge', icon: BookOpen, label: 'Knowledge Base' },
-  { to: '/integrations', icon: GitBranch, label: 'Integrations' },
-  { to: '/servers', icon: Server, label: 'Servers' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/app/projects',    icon: FolderKanban,   label: 'Projects'     },
+  { to: '/app/studio',      icon: LayoutTemplate, label: 'Studio'       },
+  { to: '/app/brand',       icon: Palette,        label: 'Brand'        },
+  { to: '/app/assets',      icon: ImageIcon,      label: 'Assets'       },
+  { to: '/app/versions',    icon: Layers3,        label: 'Versions'     },
+  { to: '/app/connections', icon: Link2,          label: 'Connections'  },
+  { to: '/app/settings',    icon: Settings,       label: 'Settings'     },
 ];
 
 export const MobileNav = () => {
@@ -26,23 +30,24 @@ export const MobileNav = () => {
           <Menu className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-64 p-0">
+      <SheetContent side="left" className="w-72 p-0">
         <div className="flex flex-col h-full">
+
           {/* Logo */}
-          <SheetHeader className="p-6 border-b border-border">
+          <SheetHeader className="p-5 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <FileCode2 className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-sm">
+                <LayoutTemplate className="w-5 h-5 text-white" />
               </div>
               <div>
-                <SheetTitle className="text-lg font-bold text-foreground">CodeGen AI</SheetTitle>
-                <p className="text-xs text-muted-foreground">Internal Tool</p>
+                <SheetTitle className="text-[15px] font-bold text-foreground leading-tight">Code Helper AI</SheetTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Website workspace</p>
               </div>
             </div>
           </SheetHeader>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -50,28 +55,29 @@ export const MobileNav = () => {
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all',
+                    'flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )
                 }
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-4 h-4 shrink-0" />
                 <span>{item.label}</span>
               </NavLink>
             ))}
           </nav>
 
-          {/* Footer */}
+          {/* Footer info */}
           <div className="p-4 border-t border-border">
-            <div className="bg-muted rounded-lg p-4">
-              <p className="text-xs font-medium text-foreground mb-1">Safety First</p>
-              <p className="text-xs text-muted-foreground">
-                All code changes are validated before approval.
+            <div className="bg-muted rounded-2xl p-4">
+              <p className="text-xs font-semibold text-foreground mb-1">Safe by Default</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                All AI changes are previewed before going live.
               </p>
             </div>
           </div>
+
         </div>
       </SheetContent>
     </Sheet>

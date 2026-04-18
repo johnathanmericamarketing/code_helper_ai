@@ -11,15 +11,16 @@ import { MobileNav } from '@/components/MobileNav';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
+// ── Page meta — aligned with new IA ──────────────────────────────────────────
 const routeMeta = {
-  '/app': { title: 'Dashboard', sub: 'Your project overview' },
-  '/app/studio': { title: 'Workspace Studio', sub: 'AI-powered visual code editor' },
-  '/app/assets': { title: 'Asset Studio', sub: 'Generate & manage images' },
-  '/app/history': { title: 'History', sub: 'All past requests & outputs' },
-  '/app/knowledge': { title: 'Knowledge Base', sub: 'Brand rules, colors & preferences' },
-  '/app/integrations': { title: 'Integrations', sub: 'Connect GitHub, Stripe & more' },
-  '/app/servers': { title: 'Servers', sub: 'Manage project hosting & deployments' },
-  '/app/settings': { title: 'Settings', sub: 'API keys & account preferences' },
+  '/app':             { title: 'Projects',        sub: 'All your active websites'            },
+  '/app/projects':    { title: 'Projects',        sub: 'All your active websites'            },
+  '/app/studio':      { title: 'Workspace Studio',sub: 'AI-powered visual code editor'       },
+  '/app/brand':       { title: 'Brand',           sub: 'Colors, fonts & brand preferences'   },
+  '/app/assets':      { title: 'Assets',          sub: 'Generate & manage images'            },
+  '/app/versions':    { title: 'Versions',        sub: 'History of all AI changes'           },
+  '/app/connections': { title: 'Connections',     sub: 'GitHub, Stripe, hosting & more'      },
+  '/app/settings':    { title: 'Settings',        sub: 'API keys & account preferences'      },
 };
 
 export const Header = () => {
@@ -27,7 +28,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  const meta = routeMeta[location.pathname] || { title: 'Code Helper', sub: 'AI Studio' };
+  const meta = routeMeta[location.pathname] || { title: 'Code Helper AI', sub: 'Website workspace' };
   const initials = (currentUser?.displayName || currentUser?.email || 'U')
     .split(' ')
     .map(w => w[0])
@@ -46,7 +47,10 @@ export const Header = () => {
   return (
     <header className="h-16 border-b border-border/60 bg-card/80 backdrop-blur-md px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 shadow-sm">
       <div className="flex items-center gap-4">
+        {/* Mobile nav toggle */}
         <MobileNav />
+
+        {/* Page title — hidden on mobile (mobile shows in MobileNav header) */}
         <div className="hidden md:block">
           <h2 className="text-[16px] font-bold text-foreground leading-none tracking-tight">{meta.title}</h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">{meta.sub}</p>
@@ -80,7 +84,7 @@ export const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2.5 px-2 h-9 rounded-xl hover:bg-muted/60">
               <Avatar className="w-7 h-7">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-violet-600 text-white text-xs font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-xs font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
