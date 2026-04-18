@@ -9,16 +9,34 @@ export const MainLayout = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-background overflow-hidden relative">
-      {/* Only show the global sidebar on non-studio pages (studio has its own left panel) */}
+      {/* Global sidebar — hidden on Studio (has its own left panel) */}
       {!isStudio && <Sidebar />}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
-        {/* Mobile Header only (shown on all pages on mobile) */}
-        <div className="md:hidden z-20 shrink-0">
-          <Header />
-        </div>
-        <main className="flex-1 overflow-hidden w-full h-full relative flex flex-col">
-          <Outlet />
+        {/* Header — shown on mobile always, and on desktop for non-studio pages */}
+        {!isStudio && (
+          <div className="shrink-0 z-20">
+            <Header />
+          </div>
+        )}
+        {/* Mobile header fallback (already gated by CSS inside Header / MobileNav) */}
+        {isStudio && (
+          <div className="md:hidden shrink-0 z-20">
+            <Header />
+          </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto w-full relative">
+          {/* Page padding — not applied inside Studio */}
+          {isStudio ? (
+            <div className="h-full flex flex-col">
+              <Outlet />
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-6 md:py-8">
+              <Outlet />
+            </div>
+          )}
         </main>
       </div>
     </div>

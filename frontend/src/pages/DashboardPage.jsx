@@ -193,8 +193,8 @@ export const DashboardPage = () => {
 
   const quickActions = [
     {
-      icon: Server, label: 'Setup Server', sub: 'Connect SSH/SFTP for AI deploys',
-      color: 'text-cyan-500', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', action: () => navigate('/app/servers')
+      icon: Server, label: 'Setup Connection', sub: 'Link your server, GitHub & more',
+      color: 'text-cyan-500', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', action: () => navigate('/app/connections')
     },
     {
       icon: Key, label: 'Add API Keys', sub: 'GitHub, Stripe & more integrations',
@@ -202,7 +202,7 @@ export const DashboardPage = () => {
     },
     {
       icon: BookOpen, label: 'Brand Kit', sub: 'Colors, fonts & tone of voice',
-      color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', action: () => navigate('/app/knowledge')
+      color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', action: () => navigate('/app/brand')
     },
   ];
 
@@ -219,7 +219,7 @@ export const DashboardPage = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-5 h-5 text-blue-200" />
-              <span className="text-blue-200 text-sm font-medium uppercase tracking-widest">Code Helper Studio</span>
+              <span className="text-blue-200 text-sm font-medium uppercase tracking-widest">Code Helper AI</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Welcome back, {userName}!
@@ -300,7 +300,7 @@ export const DashboardPage = () => {
             <h2 className="text-lg font-bold text-foreground">Recent Activity</h2>
             <p className="text-sm text-muted-foreground">Latest requests for {activeProject?.name}</p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => navigate('/app/history')} className="gap-2 text-xs">
+          <Button size="sm" variant="outline" onClick={() => navigate('/app/versions')} className="gap-2 text-xs">
             View All <ArrowRight className="w-3 h-3" />
           </Button>
         </div>
@@ -328,7 +328,7 @@ export const DashboardPage = () => {
               <div
                 key={req.id}
                 className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 cursor-pointer transition-colors group"
-                onClick={() => navigate(`/app/request/${req.id}`)}
+                onClick={() => navigate(`/app/debug/requests/${req.id}`)}
               >
                 <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <Activity className="w-4 h-4 text-primary" />

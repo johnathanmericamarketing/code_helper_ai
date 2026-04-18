@@ -86,8 +86,8 @@ export const HistoryPage = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Changes</h1>
-          <p className="text-muted-foreground mt-1">A timeline of everything you've published on your site.</p>
+          <h1 className="text-3xl font-bold text-foreground">Versions</h1>
+          <p className="text-muted-foreground mt-1">A complete timeline of every change published to your site.</p>
         </div>
         <Alert>
           <Info className="w-4 h-4"/>
@@ -104,7 +104,7 @@ export const HistoryPage = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Changes</h1>
+          <h1 className="text-3xl font-bold text-foreground">Versions</h1>
           <p className="text-muted-foreground mt-1">
             Timeline of everything you've published on <span className="text-foreground font-medium">{activeProject.name}</span>.
           </p>
@@ -143,7 +143,7 @@ export const HistoryPage = () => {
             <Sparkles className="w-12 h-12 text-muted-foreground mx-auto opacity-50"/>
             <p className="font-medium text-foreground">No changes published yet</p>
             <p className="text-sm text-muted-foreground">
-              Head to the Studio, describe what you want to change, and publish. Your timeline builds up here.
+              Use the Studio to make AI changes. When you publish, they appear here as version entries.
             </p>
             <Button onClick={() => navigate('/app/studio')} className="mt-2 gap-2">
               <Rocket className="w-4 h-4"/> Open the Studio
@@ -163,7 +163,7 @@ export const HistoryPage = () => {
                   <div
                     key={i}
                     className="relative p-4 rounded-lg border border-border bg-card hover:border-primary/40 transition-colors cursor-pointer"
-                    onClick={() => e.requestId && navigate(`/app/request/${e.requestId}`)}
+                    onClick={() => e.requestId && navigate(`/app/debug/requests/${e.requestId}`)}
                   >
                     <div className="absolute -left-[29px] top-5 w-4 h-4 rounded-full bg-success/20 border-2 border-success flex items-center justify-center">
                       <CheckCircle2 className="w-2.5 h-2.5 text-success"/>

@@ -186,8 +186,8 @@ export const KnowledgeBasePage = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Knowledge Base</h1>
-          <p className="text-muted-foreground mt-1">Your brand kit and any coding standards or notes the AI should follow.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Brand</h1>
+          <p className="text-muted-foreground mt-1">Your brand kit, colors, fonts, and AI coding rules — applied to every change.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button

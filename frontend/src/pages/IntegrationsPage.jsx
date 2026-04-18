@@ -115,8 +115,8 @@ export const IntegrationsPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Integrations</h1>
-        <p className="text-muted-foreground mt-1">Connect GitHub repositories and local file systems</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Connections</h1>
+        <p className="text-muted-foreground mt-1">Connect GitHub repositories, servers, and local workspaces</p>
       </div>
 
       <Tabs defaultValue="github" className="w-full">
