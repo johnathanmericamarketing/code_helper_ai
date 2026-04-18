@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Play, RotateCcw, Terminal, FileCode } from 'lucide-react';
 import Editor from '@monaco-editor/react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { toast } from 'sonner';
 
 export const CodePlayground = ({ initialCode = '', language = 'javascript' }) => {

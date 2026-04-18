@@ -14,7 +14,7 @@ import { AuthPage } from "@/pages/AuthPage";
 import { AdminPage } from "@/pages/AdminPage";
 import { AssetStudioPage } from "@/pages/AssetStudioPage";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { getUserProfile } from "@/lib/user-service";

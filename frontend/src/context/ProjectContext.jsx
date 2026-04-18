@@ -12,8 +12,7 @@ export const ProjectProvider = ({ children }) => {
   const [activeProject, setActiveProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load projects on sign-in (refreshProjects is stable; only re-run on auth change)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Load projects on sign-in; refreshProjects is stable so we intentionally exclude it.
   useEffect(() => {
     if (currentUser) {
       refreshProjects();
@@ -22,7 +21,7 @@ export const ProjectProvider = ({ children }) => {
       setActiveProject(null);
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshProjects = async () => {
     setLoading(true);

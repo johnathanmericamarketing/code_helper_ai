@@ -17,7 +17,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Editor from '@monaco-editor/react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { knowledgeService } from '@/lib/firebase-service';
 import { useProject } from '@/context/ProjectContext';
 import { HexColorPicker } from "react-colorful";
@@ -85,7 +85,6 @@ export const KnowledgeBasePage = () => {
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeProject) {
       fetchKnowledge();
@@ -93,7 +92,7 @@ export const KnowledgeBasePage = () => {
       setKnowledge([]);
       setLoading(false);
     }
-  }, [activeProject]);
+  }, [activeProject]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e) => {
     e.preventDefault();

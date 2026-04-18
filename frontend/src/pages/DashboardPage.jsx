@@ -27,7 +27,6 @@ export const DashboardPage = () => {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeProject) {
       fetchRequests();
@@ -35,7 +34,7 @@ export const DashboardPage = () => {
       setRequests([]);
       setLoading(false);
     }
-  }, [activeProject]);
+  }, [activeProject]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRequests = async () => {
     setLoading(true);
