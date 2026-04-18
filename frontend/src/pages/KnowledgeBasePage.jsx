@@ -55,6 +55,7 @@ export const KnowledgeBasePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [brandOpen, setBrandOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -188,6 +189,44 @@ export const KnowledgeBasePage = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Knowledge Base</h1>
           <p className="text-muted-foreground mt-1">Your brand kit and any coding standards or notes the AI should follow.</p>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setBrandOpen(true)}
+            disabled={!activeProject}
+            className="gap-2"
+            title="Edit branding for this project"
+          >
+            <Palette className="w-4 h-4 text-indigo-500" />
+            Branding
+            {activeProject?.brand?.updatedAt && (
+              <span className="w-1.5 h-1.5 rounded-full bg-success ml-0.5" />
+            )}
+          </Button>
+
+          <Dialog open={brandOpen} onOpenChange={setBrandOpen}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+              <DialogHeader className="px-6 pt-6">
+                <DialogTitle className="flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-indigo-500" />
+                  Branding for {activeProject?.name || 'this project'}
+                </DialogTitle>
+                <DialogDescription>
+                  Saved to this project and applied to every AI-generated change.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="p-6 pt-4">
+                {activeProject && (
+                  <BrandKitCard
+                    project={activeProject}
+                    onSaved={() => { refreshActiveProject?.(); setBrandOpen(false); }}
+                  />
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => { resetForm(); setEditingItem(null); }} className="gap-2">
@@ -350,12 +389,8 @@ export const KnowledgeBasePage = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
-
-      {/* Brand Kit (per-project, saved to project.brand, applied to every AI call) */}
-      {activeProject && (
-        <BrandKitCard project={activeProject} onSaved={refreshActiveProject} />
-      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

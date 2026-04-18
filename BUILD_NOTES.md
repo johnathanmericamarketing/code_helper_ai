@@ -193,6 +193,7 @@ Address before production: move creds to Secret Manager / KMS; wire Stripe signa
 
 Append one line per meaningful shipped change. Most recent first.
 
+- `2026-04-18` · branch `claude/review-requirements-T9xHd` · Dedicated "Branding" button in Knowledge Base header (outline, Palette icon, green dot when set) opens BrandKitCard in a modal scoped to the active project. Inline card removed.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · `BrandKitCard` on Knowledge Base page: structured per-project brand (name, tagline, primary/secondary/accent colors via `react-colorful`, heading/body fonts, voice, do/don't, logo URL, extra notes). Saved to `project.brand` via new `projectService.updateBrand`. Piped into Studio AI context + "Get ideas" suggestions so every generation respects the brand.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · Desktop/Mobile viewport toggle on both `LiveSitePreview` and `VisualInspector` (iconed segmented control; mobile = 390px-wide framed preview with scroll + drop shadow). Works on "Your Site Now" and "Your Site With Changes" panes.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · "Get ideas" button in Studio (new `suggestIdeas` Cloud Function — Claude/Gemini, BYOK-aware, stub fallback) + rewrite of `/app/history` as a plain-language "My Changes" timeline grouped by month, driven by `project.changeLog`, with CSV report download.
