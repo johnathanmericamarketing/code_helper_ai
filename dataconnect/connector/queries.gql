@@ -1,0 +1,256 @@
+# Code Helper AI — Data Connect Queries
+# All queries enforce ownership via auth.uid comparison.
+# CLIENT reads use USER_AUTH level.
+# CLOUD FUNCTION reads use NO_ACCESS (called from Admin SDK, bypasses these rules).
+
+# ══════════════════════════════════════════════════════════════════════════════
+# USER
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Get the currently signed-in user's profile
+query GetCurrentUser @auth(level: USER) {
+  user(key: { uid_expr: "auth.uid" }) {
+    uid
+    email
+    displayName
+    plan
+    aiModel
+    maxTokens
+    usageInputTokens
+    usageOutputTokens
+    usageCostUsd
+    usageRequests
+    usageResetAt
+    stripeCustomerId
+    stripeSubscriptionId
+    createdAt
+    updatedAt
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROJECTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+# List all active projects for the signed-in user
+query ListProjects @auth(level: USER) {
+  projects(
+    where: {
+      user: { uid: { eq_expr: "auth.uid" } }
+      isActive: { eq: true }
+      deletedAt: { isNull: true }
+    }
+    orderBy: { updatedAt: DESC }
+  ) {
+    id
+    name
+    domain
+    description
+    techStack
+    siteNotes
+    brand
+    intake
+    changeLog
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+# Get a single project by ID (ownership enforced)
+query GetProject($id: UUID!) @auth(level: USER) {
+  project(id: $id) {
+    id
+    user { uid }
+    name
+    domain
+    description
+    techStack
+    siteNotes
+    brand
+    intake
+    changeLog
+    isActive
+    deletedAt
+    createdAt
+    updatedAt
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# KNOWLEDGE BASE
+# ══════════════════════════════════════════════════════════════════════════════
+
+# List all knowledge entries for a project
+query ListKnowledgeByProject($projectId: UUID!) @auth(level: USER) {
+  knowledgeEntries(
+    where: {
+      project: { id: { eq: $projectId } }
+      user: { uid: { eq_expr: "auth.uid" } }
+    }
+    orderBy: { updatedAt: DESC }
+  ) {
+    id
+    title
+    category
+    language
+    framework
+    description
+    codeExample
+    badExample
+    tags
+    priority
+    createdAt
+    updatedAt
+  }
+}
+
+# Get ONLY brand identity entries — used to inject into AI system prompt
+query ListBrandKnowledge($projectId: UUID!) @auth(level: USER) {
+  knowledgeEntries(
+    where: {
+      project: { id: { eq: $projectId } }
+      user: { uid: { eq_expr: "auth.uid" } }
+      category: { eq: "brand_identity" }
+    }
+    orderBy: { priority: DESC }
+  ) {
+    id
+    title
+    description
+    codeExample
+    tags
+    priority
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CODE REQUESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+# List all code requests for a project (newest first)
+query ListCodeRequestsByProject($projectId: UUID!) @auth(level: USER) {
+  codeRequests(
+    where: {
+      project: { id: { eq: $projectId } }
+      user: { uid: { eq_expr: "auth.uid" } }
+    }
+    orderBy: { createdAt: DESC }
+  ) {
+    id
+    rawRequest
+    urgency
+    areaOfApp
+    status
+    modelUsed
+    createdAt
+    updatedAt
+  }
+}
+
+# Get a single request with its generated code
+query GetCodeRequestWithCode($id: UUID!) @auth(level: USER) {
+  codeRequest(id: $id) {
+    id
+    rawRequest
+    urgency
+    areaOfApp
+    status
+    modelUsed
+    createdAt
+    updatedAt
+    generatedCodes_on_request {
+      id
+      structuredTask
+      executionPlan
+      codeChanges
+      validationChecks
+      summary
+      rollbackInstructions
+      modelUsed
+      inputTokens
+      outputTokens
+      costUsd
+      mode
+      createdAt
+    }
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERVERS
+# ══════════════════════════════════════════════════════════════════════════════
+
+# List all servers for a project (no credentials returned — those live in Secret Manager)
+query ListServersByProject($projectId: UUID!) @auth(level: USER) {
+  servers(
+    where: {
+      project: { id: { eq: $projectId } }
+      user: { uid: { eq_expr: "auth.uid" } }
+      isActive: { eq: true }
+    }
+    orderBy: { createdAt: DESC }
+  ) {
+    id
+    name
+    serverType
+    host
+    port
+    username
+    remotePath
+    description
+    isActive
+    lastConnectedAt
+    createdAt
+    updatedAt
+    # credentialSecretName intentionally excluded from client queries
+  }
+}
+
+# Get a single server — used by Cloud Functions to retrieve the secret name
+# This query is marked NO_ACCESS so only the Admin SDK / Cloud Functions can call it
+query GetServerForFunction($id: UUID!) @auth(level: NO_ACCESS) {
+  server(id: $id) {
+    id
+    user { uid }
+    serverType
+    host
+    port
+    username
+    remotePath
+    credentialSecretName
+    isActive
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DEPLOY LOGS
+# ══════════════════════════════════════════════════════════════════════════════
+
+# List deploy history for a project (audit trail)
+query ListDeployLogsByProject($projectId: UUID!, $limit: Int) @auth(level: USER) {
+  deployLogs(
+    where: {
+      project: { id: { eq: $projectId } }
+      user: { uid: { eq_expr: "auth.uid" } }
+    }
+    orderBy: { deployedAt: DESC }
+    limit: $limit
+  ) {
+    id
+    status
+    errorMessage
+    filesDeployed
+    deployedAt
+    server {
+      id
+      name
+      host
+    }
+    generatedCode {
+      id
+      summary
+      modelUsed
+    }
+  }
+}

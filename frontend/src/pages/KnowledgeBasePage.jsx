@@ -196,11 +196,11 @@ export const KnowledgeBasePage = () => {
             onClick={() => setBrandOpen(true)}
             disabled={!activeProject}
             className="gap-2"
-            title="Edit branding for this project"
+            title={activeProject ? 'Edit branding for this project' : 'Select a project to edit branding'}
           >
             <Palette className="w-4 h-4 text-indigo-500" />
             Branding
-            {activeProject?.brand?.updatedAt && (
+            {activeProject?.brand?.updatedAt && !activeProject?.brand?.brandName === '' && (
               <span className="w-1.5 h-1.5 rounded-full bg-success ml-0.5" />
             )}
           </Button>

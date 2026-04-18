@@ -1,7 +1,24 @@
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore } = require("firebase-admin/firestore");
+const { getDatabase }  = require("firebase-admin/database");
 
-const db = getFirestore();
+const db   = getFirestore();
+const rtdb = getDatabase();
+
+// ─── Helper: write live generation progress to RTDB ──────────────────────────
+async function writeProgress(requestId, status, step, progress) {
+  if (!requestId) return;
+  try {
+    await rtdb.ref(`generation/${requestId}`).update({
+      status,
+      step,
+      progress,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (_) {
+    // RTDB missing or permission error — non-fatal, silently ignore
+  }
+}
 
 // ─── Helper: get user profile ────────────────────────────────────────────────
 async function getUserProfile(uid) {
@@ -45,6 +62,10 @@ exports.processCodeRequest = onCall(async (request) => {
   }
 
   const uid = request.auth.uid;
+
+  // Step 1: Analyzing
+  await writeProgress(requestId, 'analyzing', 'Analyzing your request…', 15);
+
   const profile = await getUserProfile(uid);
 
   const model = request.data.overrideModel || profile.claude_model || "claude-sonnet-4-5";
@@ -65,6 +86,7 @@ exports.processCodeRequest = onCall(async (request) => {
 
   // ── FRAMEWORK MODE: Return realistic stub if no key is configured ──────────
   if (!apiKey) {
+    await writeProgress(requestId, 'generating', 'Generating code (demo mode)…', 60);
     const stub = buildStubResponse(requestId, rawRequest);
     // Still record nominal usage to show the tracking works
     await recordUsage(uid, 1800, 1200, 0);
@@ -76,6 +98,7 @@ exports.processCodeRequest = onCall(async (request) => {
       .get()
       .then(snap => snap.docs[0]?.ref.update({ status: "validated", updated_at: new Date().toISOString() }));
 
+    await writeProgress(requestId, 'done', 'Done! Preview is ready.', 100);
     return { ...stub, mode: "stub" };
   }
 
@@ -96,6 +119,9 @@ Always respond with valid JSON block (no markdown fences) matching this structur
     let responseText = "";
     let inputTokens = 0;
     let outputTokens = 0;
+
+    // Step 2: Generating
+    await writeProgress(requestId, 'generating', `Generating with ${model}…`, 40);
 
     if (isGemini) {
       // ── GEMINI API CALL ───────────────────────────────────────────────────
@@ -145,6 +171,9 @@ Always respond with valid JSON block (no markdown fences) matching this structur
       throw new HttpsError("internal", "Failed to parse AI response as JSON");
     }
 
+    // Step 3: Validating
+    await writeProgress(requestId, 'validating', 'Running validation checks…', 80);
+
     // Calculate cost
     const pricing = AI_PRICING[model] || AI_PRICING["claude-sonnet-4-5"];
     const costUsd =
@@ -169,8 +198,12 @@ Always respond with valid JSON block (no markdown fences) matching this structur
       .get()
       .then(snap => snap.docs[0]?.ref.update({ status: "validated", updated_at: new Date().toISOString() }));
 
+    // Step 4: Done
+    await writeProgress(requestId, 'done', 'Done! Your preview is ready.', 100);
+
     return { ...payload, mode: "live" };
   } catch (err) {
+    await writeProgress(requestId, 'error', err.message || 'Generation failed', 0);
     if (err instanceof HttpsError) throw err;
     throw new HttpsError("internal", "AI API error: " + err.message);
   }

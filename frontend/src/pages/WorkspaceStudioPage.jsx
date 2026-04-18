@@ -4,18 +4,22 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { VisualInspector } from '@/components/VisualInspector';
 import { LiveSitePreview } from '@/components/LiveSitePreview';
 import { IntakeWizard } from '@/components/IntakeWizard';
+import { BrandKitCard } from '@/components/BrandKitCard';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2, Trash2, Settings2, Lightbulb, X } from 'lucide-react';
+import { Sparkles, Send, Loader2, Rocket, FileCode2, Eye, Wand2, Trash2, Settings2, Lightbulb, X, Palette } from 'lucide-react';
 import { toast } from 'sonner';
-import { requestsService, generatedCodeService } from '@/lib/firebase-service';
+import { requestsService } from '@/lib/firebase-service';
 import { projectService } from '@/lib/project-service';
 import { useProject } from '@/context/ProjectContext';
+import { detectBrandSignals } from '@/lib/brand-detection';
+import { generationRTDB, useGenerationProgress } from '@/lib/realtime-service';
 import Editor from '@monaco-editor/react';
 
 export const WorkspaceStudioPage = () => {
@@ -24,18 +28,26 @@ export const WorkspaceStudioPage = () => {
   const [model, setModel] = useState('claude-sonnet-4-5');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Live generation progress from RTDB
+  const [activeRequestId, setActiveRequestId] = useState(null);
+  const genProgress = useGenerationProgress(activeRequestId);
+
   // State for the three panes
   const [serverCode, setServerCode] = useState('// Connect to a repository to load active branch code here.\n\nfunction App() {\n  return <div>Hello World</div>;\n}');
   const [currentAppCode, setCurrentAppCode] = useState('<div><h1>Your App</h1><p>This represents the current state of your application UI.</p></div>');
   const [futureAppCode, setFutureAppCode] = useState(null);
 
-  const [activeRequestId, setActiveRequestId] = useState(null);
+  // keep a single requestId state (removed duplicate declared later)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [ideas, setIdeas] = useState([]);
   const [ideasLoading, setIdeasLoading] = useState(false);
   const [showIdeas, setShowIdeas] = useState(false);
+
+  // Brand detection state
+  const [brandDetected, setBrandDetected]   = useState(null); // result from detectBrandSignals
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false);
 
   const handleGetIdeas = async () => {
     if (!activeProject) {
@@ -137,8 +149,8 @@ export const WorkspaceStudioPage = () => {
 
     try {
       toast.info('Working on your changes…');
-      
-      // 1. Create a request footprint scoped to project
+
+      // 1. Create Firestore request record
       const rawPayload = {
         raw_request: prompt,
         urgency: 'high',
@@ -146,17 +158,28 @@ export const WorkspaceStudioPage = () => {
       };
       const req = await requestsService.create(rawPayload, activeProject.id);
       setActiveRequestId(req.id);
-      
-      // 2. Process with dynamic model override (include intake/notes/changelog context)
+
+      // 2. Open a live RTDB progress node so the UI animates immediately
+      await generationRTDB.init(req.id);
+
+      // 3. Call the Cloud Function (it writes progress steps to RTDB as it runs)
       const generated = await requestsService.process(req.id, prompt, buildProjectContext(), model);
       
       if (generated && generated.code_changes && generated.code_changes.length > 0) {
         // Find HTML/React changes suitable for the visual inspector, otherwise fallback to the first diff
         const uiChange = generated.code_changes.find(c => c.file_path.endsWith('.jsx') || c.file_path.endsWith('.html'));
         const diffToRender = uiChange ? uiChange.diff : generated.code_changes[0].diff;
-        
+
         setFutureAppCode(diffToRender);
         toast.success('Your preview is ready — check it on the right!');
+
+        // Scan all diffs for brand signals
+        const allDiffText = generated.code_changes.map((c) => c.diff || '').join('\n');
+        const responseText = (generated.summary || '') + '\n' + allDiffText;
+        const detected = detectBrandSignals(responseText, activeProject?.brand);
+        if (detected) {
+          setBrandDetected(detected);
+        }
       } else {
         toast.error("We couldn't build a preview for this request. Try rewording it.");
       }
@@ -166,6 +189,10 @@ export const WorkspaceStudioPage = () => {
       setFutureAppCode('<!-- Error generating code -->');
     } finally {
       setIsGenerating(false);
+      // Clean up the RTDB progress node after a short delay
+      if (activeRequestId) {
+        setTimeout(() => generationRTDB.clear(activeRequestId).catch(() => {}), 3000);
+      }
     }
   };
 
@@ -279,9 +306,30 @@ export const WorkspaceStudioPage = () => {
           </div>
           <div className="flex-1 min-h-0 relative overflow-hidden bg-background">
             {isGenerating ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-10 gap-4">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-secondary-foreground font-medium animate-pulse">Building your changes…</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10 gap-5 px-8">
+                {/* Spinner */}
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+
+                {/* Step label from RTDB */}
+                <p className="text-secondary-foreground font-medium text-center animate-pulse">
+                  {genProgress.step || 'Building your changes…'}
+                </p>
+
+                {/* Progress bar — only shown when RTDB has a real value */}
+                {genProgress.progress > 0 && (
+                  <div className="w-full max-w-xs">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>Progress</span>
+                      <span>{genProgress.progress}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-500"
+                        style={{ width: `${genProgress.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             ) : futureAppCode ? (
               <VisualInspector htmlContent={futureAppCode} title="Your Site With Changes" isPreview />
@@ -353,6 +401,70 @@ export const WorkspaceStudioPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Brand Detection Banner ── */}
+      {brandDetected && (
+        <div className="shrink-0 border-t border-indigo-500/30 bg-indigo-500/5 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap z-30">
+          <div className="flex items-center gap-2 text-sm">
+            <Palette className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span className="text-foreground font-medium">This change touches your branding</span>
+            <span className="text-muted-foreground text-xs hidden sm:inline">
+              — {[
+                brandDetected.colors.length > 0 && `${brandDetected.colors.length} color${brandDetected.colors.length > 1 ? 's' : ''}`,
+                brandDetected.fonts.length > 0  && `${brandDetected.fonts.length} font${brandDetected.fonts.length > 1 ? 's' : ''}`,
+                brandDetected.hasBrandContext   && 'brand language',
+              ].filter(Boolean).join(', ')} detected.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 text-xs border-indigo-500/40 hover:border-indigo-500 text-indigo-400 hover:text-indigo-300"
+              onClick={() => setBrandDialogOpen(true)}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              Save to Brand Kit
+            </Button>
+            <button
+              type="button"
+              onClick={() => setBrandDetected(null)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss brand suggestion"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Brand Kit Quick-Edit Dialog */}
+      <Dialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Palette className="w-5 h-5 text-indigo-500" />
+              Update Brand Kit — {activeProject?.name || 'this project'}
+            </DialogTitle>
+            <DialogDescription>
+              The AI found new brand values in your recent change. Review and save them to make sure every future generation stays on-brand.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 pt-4">
+            {activeProject && (
+              <BrandKitCard
+                project={activeProject}
+                prefill={brandDetected?.prefill}
+                onSaved={() => {
+                  setBrandDialogOpen(false);
+                  setBrandDetected(null);
+                  refreshActiveProject?.();
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Bottom Bar: AI Target Command */}
       <div className="shrink-0 border-t border-border bg-card p-4 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] relative z-30">

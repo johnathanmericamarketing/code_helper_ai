@@ -1,0 +1,285 @@
+# Code Helper AI — Firebase Data Connect Schema
+# Cloud SQL for PostgreSQL via code-helper-studio-fdc
+# Schema version: 2.0.0
+#
+# IMPORTANT: This schema reflects the LIVE deployed schema in Firebase.
+# Do NOT run `firebase deploy --only dataconnect` without verifying
+# that your local changes are additive only (no column renames/drops).
+#
+# Live tables (from Firebase console — Data Connect → code-helper-studio):
+#   User, Project, ApiKey, CodeEditorActivity, CodeRequest, GeneratedCode,
+#   CodeChange, ValidationCheck, KnowledgeBase, Server, GitHubConnection, Workspace
+
+# ─── User ─────────────────────────────────────────────────────────────────────
+# Primary key is Firebase Auth UID. All tables FK back here.
+type User @table(key: "uid") {
+  uid: String! @default(expr: "auth.uid")
+  email: String! @col(dataType: "varchar(320)")
+  displayName: String @col(dataType: "varchar(200)")
+  profilePictureUrl: String @col(dataType: "varchar(500)")
+
+  # Auth
+  passwordHash: String @col(dataType: "varchar(500)")   # Optional — only for email/password flows
+  lastLogin: Timestamp
+
+  # Role & plan
+  role: String! @default(value: "user") @col(dataType: "varchar(20)") # user | admin
+  plan: String! @default(value: "free") @col(dataType: "varchar(20)") # free | pro | agency
+  stripeCustomerId: String @col(dataType: "varchar(100)")
+  stripeSubscriptionId: String @col(dataType: "varchar(100)")
+
+  # AI preferences
+  aiApiKey: String @col(dataType: "varchar(500)")      # User's own API key (encrypted via Secret Manager)
+  aiModel: String @default(value: "claude-sonnet-4-5") @col(dataType: "varchar(80)")
+  maxTokens: Int @default(value: 4096)
+  autoApproveLowRisk: Boolean @default(value: false)
+
+  # Usage tracking — updated by Cloud Functions only
+  usageInputTokens: Int! @default(value: 0)
+  usageOutputTokens: Int! @default(value: 0)
+  usageCostUsd: Float! @default(value: 0)
+  usageRequests: Int! @default(value: 0)
+  usageResetAt: Timestamp
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── Project ──────────────────────────────────────────────────────────────────
+type Project @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+
+  name: String! @col(dataType: "varchar(120)")
+  domain: String @col(dataType: "varchar(255)")
+  description: String
+  techStack: Any               # JSONB — string array (e.g. ["React","Tailwind"])
+  siteNotes: String
+
+  # Brand kit — colors, fonts, voice, logo URL
+  brand: Any                   # JSONB — { primaryColor, secondaryColor, accentColor,
+                               #           headingFont, bodyFont, brandName, tagline, voice }
+
+  # Intake wizard answers
+  intake: Any                  # JSONB — { goals: {summary}, audience, ... }
+
+  # Change history entries
+  changeLog: Any               # JSONB array — [{ summary, at, model }]
+
+  isActive: Boolean! @default(value: true)
+  deletedAt: Timestamp         # Soft delete — null = active
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── Workspace ────────────────────────────────────────────────────────────────
+# Represents a named collaborative workspace (future multi-user feature)
+type Workspace @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+  project: Project!
+
+  name: String! @col(dataType: "varchar(120)")
+  description: String
+  isActive: Boolean! @default(value: true)
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── ApiKey ───────────────────────────────────────────────────────────────────
+# Stores user-supplied API keys (Anthropic, Gemini, OpenAI, etc.)
+# The actual key value is stored in Google Cloud Secret Manager.
+# Only the secretName resource path is kept here.
+type ApiKey @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+
+  provider: String! @col(dataType: "varchar(50)")  # anthropic | gemini | openai | stripe
+  label: String @col(dataType: "varchar(120)")     # Human-friendly label
+  secretName: String! @col(dataType: "varchar(500)") # GCP Secret Manager resource name
+  isActive: Boolean! @default(value: true)
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── KnowledgeBase ────────────────────────────────────────────────────────────
+# User-curated coding rules and brand context injected into AI prompts
+type KnowledgeBase @table {
+  id: UUID! @default(expr: "uuidV4()")
+  project: Project!
+  user: User!
+
+  title: String! @col(dataType: "varchar(200)")
+  category: String! @col(dataType: "varchar(50)")
+    # brand_identity | code_style | architecture | security
+    # performance | testing | documentation | best_practices
+  language: String @col(dataType: "varchar(80)")
+  framework: String @col(dataType: "varchar(80)")
+  description: String
+  codeExample: String
+  badExample: String
+  tags: Any                    # JSONB string array
+  priority: Int @default(value: 5)
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── CodeRequest ──────────────────────────────────────────────────────────────
+type CodeRequest @table {
+  id: UUID! @default(expr: "uuidV4()")
+  project: Project!
+  user: User!
+
+  rawRequest: String!
+  urgency: String @col(dataType: "varchar(30)")
+  areaOfApp: String @col(dataType: "varchar(120)")
+  screenshots: Any             # JSONB — array of URLs
+  links: Any                   # JSONB — array of URLs
+  knowledgeBaseIds: Any        # JSONB — array of KnowledgeBase UUIDs used
+  modelUsed: String @col(dataType: "varchar(80)")
+
+  status: String! @default(value: "pending") @col(dataType: "varchar(30)")
+    # pending | generating | validated | deployed | failed
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── GeneratedCode ────────────────────────────────────────────────────────────
+type GeneratedCode @table {
+  id: UUID! @default(expr: "uuidV4()")
+  request: CodeRequest!
+  user: User!
+
+  # AI response breakdown (JSONB)
+  structuredTask: Any          # { task_type, title, context, expected_behavior, ... }
+  executionPlan: Any           # { files_to_modify, risk_level, ... }
+  codeChanges: Any             # [{ file_path, diff, description }]
+  validationChecks: Any        # [{ check_name, result, message }]
+
+  summary: String
+  rollbackInstructions: String
+
+  modelUsed: String @col(dataType: "varchar(80)")
+  inputTokens: Int
+  outputTokens: Int
+  costUsd: Float
+
+  # stub = no API key configured; live = real AI call
+  mode: String @default(value: "stub") @col(dataType: "varchar(10)")
+
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── CodeChange ───────────────────────────────────────────────────────────────
+# Individual file-level changes extracted from a GeneratedCode record.
+# Enables per-file diff views and rollback tracking.
+type CodeChange @table {
+  id: UUID! @default(expr: "uuidV4()")
+  generatedCode: GeneratedCode!
+  user: User!
+
+  filePath: String! @col(dataType: "varchar(500)")
+  changeType: String! @col(dataType: "varchar(20)") # create | modify | delete
+  diffContent: String          # Unified diff format
+  description: String
+
+  appliedAt: Timestamp
+  rolledBackAt: Timestamp
+
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── ValidationCheck ──────────────────────────────────────────────────────────
+# Individual validation results from the AI's self-checking step.
+type ValidationCheck @table {
+  id: UUID! @default(expr: "uuidV4()")
+  generatedCode: GeneratedCode!
+
+  checkName: String! @col(dataType: "varchar(120)")
+  result: String! @col(dataType: "varchar(20)") # pass | fail | warning | skip
+  message: String
+  severity: String @col(dataType: "varchar(20)") # info | low | medium | high | critical
+
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── CodeEditorActivity ───────────────────────────────────────────────────────
+# Tracks user interactions in the code editor panel (analytics / replay).
+type CodeEditorActivity @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+  project: Project!
+  generatedCode: GeneratedCode
+
+  activityType: String! @col(dataType: "varchar(50)")
+    # view | copy | apply | rollback | export | run_sandbox | inspect_element
+  filePath: String @col(dataType: "varchar(500)")
+  metadata: Any                # JSONB — extra context (element selector, export format, etc.)
+
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── Server ───────────────────────────────────────────────────────────────────
+# Stores only connection METADATA. Passwords / SSH keys are in
+# Google Cloud Secret Manager: projects/code-helper-studio/secrets/server-cred-{id}
+type Server @table {
+  id: UUID! @default(expr: "uuidV4()")
+  project: Project!
+  user: User!
+
+  name: String! @col(dataType: "varchar(120)")
+  serverType: String! @col(dataType: "varchar(20)") # ftp | sftp | ssh
+  host: String! @col(dataType: "varchar(255)")
+  port: Int!
+  username: String! @col(dataType: "varchar(120)")
+  remotePath: String @default(value: "/") @col(dataType: "varchar(500)")
+  description: String
+
+  # GCP Secret Manager resource name — format:
+  #   projects/PROJECT_ID/secrets/server-cred-{id}/versions/latest
+  credentialSecretName: String @col(dataType: "varchar(500)")
+
+  isActive: Boolean! @default(value: true)
+  lastConnectedAt: Timestamp
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── GitHubConnection ─────────────────────────────────────────────────────────
+# Stores the GitHub OAuth token for a user (encrypted via Secret Manager).
+type GitHubConnection @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+
+  githubUserId: String @col(dataType: "varchar(50)")
+  githubUsername: String @col(dataType: "varchar(120)")
+  # OAuth token stored in Secret Manager — only secretName kept here
+  tokenSecretName: String @col(dataType: "varchar(500)")
+  scopes: Any                  # JSONB — list of granted OAuth scopes
+  isActive: Boolean! @default(value: true)
+
+  connectedAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ─── DeployLog ────────────────────────────────────────────────────────────────
+# Immutable audit trail — created by Cloud Functions after every deploy attempt.
+type DeployLog @table {
+  id: UUID! @default(expr: "uuidV4()")
+  server: Server!
+  project: Project!
+  user: User!
+  generatedCode: GeneratedCode
+
+  filesDeployed: Any           # JSONB — [{ path, sizeBytes }]
+  status: String! @col(dataType: "varchar(20)") # success | failed
+  errorMessage: String
+
+  deployedAt: Timestamp! @default(expr: "request.time")
+}

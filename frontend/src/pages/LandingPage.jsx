@@ -81,9 +81,11 @@ export const LandingPage = () => {
               {currentUser ? 'Enter Workspace' : 'Start Building for Free'}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto hover:bg-muted/50 border-border/60">
-              View Documentation
-            </Button>
+            <a href="https://codehelper.studio" target="_blank" rel="noopener noreferrer">
+              <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto hover:bg-muted/50 border-border/60">
+                codehelper.studio
+              </Button>
+            </a>
           </div>
         </div>
       </section>
@@ -168,13 +170,21 @@ export const LandingPage = () => {
 
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 bg-background py-12 px-6 text-center">
-        <div className="flex items-center justify-center gap-2 mb-4 opacity-50">
+        <div className="flex items-center justify-center gap-2 mb-4 opacity-70">
           <FileCode2 className="w-5 h-5" />
-          <span className="font-semibold tracking-tight">Code Helper</span>
+          <span className="font-semibold tracking-tight">Code Helper Studio</span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Built securely on Google Cloud Platform & Firebase.
+        <p className="text-sm text-muted-foreground mb-2">
+          Built securely on Google Cloud Platform &amp; Firebase.
         </p>
+        <a
+          href="https://codehelper.studio"
+          className="text-xs text-muted-foreground/60 hover:text-primary transition-colors"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          codehelper.studio
+        </a>
       </footer>
     </div>
   );

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@code-helper/dataconnect": "file:src/lib/generated/dataconnect",
     "@hookform/resolvers": "^5.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-accordion": "^1.2.8",

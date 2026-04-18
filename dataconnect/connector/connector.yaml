@@ -1,0 +1,6 @@
+connectorId: "code-helper-connector"
+generate:
+  javascriptSdk:
+    outputDir: "../../frontend/src/lib/generated/dataconnect"
+    package: "@code-helper/dataconnect"
+    packageJsonDir: "../../frontend"

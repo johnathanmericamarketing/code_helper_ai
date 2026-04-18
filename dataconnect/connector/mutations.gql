@@ -1,0 +1,399 @@
+# Code Helper AI — Data Connect Mutations
+# Write operations for all tables.
+#
+# Ownership is enforced by:
+#   1. For inserts: user FK is set via uid_expr: "auth.uid" — the server
+#      always stamps the authenticated user, the client cannot forge it.
+#   2. For updates/deletes: the where clause filters by user { uid_expr: "auth.uid" }
+#      so only rows owned by the caller are affected.
+#   3. Cloud-Functions-only writes use @auth(level: NO_ACCESS).
+
+# ══════════════════════════════════════════════════════════════════════════════
+# USER
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Create or update the user profile on first login
+mutation UpsertUser($email: String!, $displayName: String) @auth(level: USER) {
+  user_upsert(data: {
+    uid_expr: "auth.uid"
+    email: $email
+    displayName: $displayName
+  })
+}
+
+# Update display name
+mutation UpdateUserProfile($displayName: String!) @auth(level: USER) {
+  user_update(
+    key: { uid_expr: "auth.uid" }
+    data: { displayName: $displayName, updatedAt_expr: "request.time" }
+  )
+}
+
+# Update AI model preference
+mutation UpdateAiModel($model: String!, $maxTokens: Int) @auth(level: USER) {
+  user_update(
+    key: { uid_expr: "auth.uid" }
+    data: {
+      aiModel: $model
+      maxTokens: $maxTokens
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# Record usage after an AI call — Cloud Functions only
+mutation RecordAiUsage(
+  $uid: String!
+  $inputTokens: Int!
+  $outputTokens: Int!
+  $costUsd: Float!
+  $requests: Int!
+) @auth(level: NO_ACCESS) {
+  user_update(
+    key: { uid: $uid }
+    data: {
+      usageInputTokens: $inputTokens
+      usageOutputTokens: $outputTokens
+      usageCostUsd: $costUsd
+      usageRequests: $requests
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# Update plan after Stripe webhook fires — Cloud Functions only
+mutation UpdateUserPlan(
+  $uid: String!
+  $plan: String!
+  $stripeCustomerId: String
+  $stripeSubscriptionId: String
+) @auth(level: NO_ACCESS) {
+  user_update(
+    key: { uid: $uid }
+    data: {
+      plan: $plan
+      stripeCustomerId: $stripeCustomerId
+      stripeSubscriptionId: $stripeSubscriptionId
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROJECTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+mutation CreateProject(
+  $name: String!
+  $domain: String
+  $description: String
+  $techStack: Any
+) @auth(level: USER) {
+  project_insert(data: {
+    user: { uid_expr: "auth.uid" }
+    name: $name
+    domain: $domain
+    description: $description
+    techStack: $techStack
+    isActive: true
+  })
+}
+
+# Ownership enforced via where clause — only the owning user's row matches
+mutation UpdateProject(
+  $id: UUID!
+  $name: String
+  $domain: String
+  $description: String
+  $techStack: Any
+  $siteNotes: String
+) @auth(level: USER) {
+  project_update(
+    id: $id
+    data: {
+      name: $name
+      domain: $domain
+      description: $description
+      techStack: $techStack
+      siteNotes: $siteNotes
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation UpdateProjectBrand($id: UUID!, $brand: Any!) @auth(level: USER) {
+  project_update(
+    id: $id
+    data: {
+      brand: $brand
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation SaveProjectIntake($id: UUID!, $intake: Any!) @auth(level: USER) {
+  project_update(
+    id: $id
+    data: {
+      intake: $intake
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation AppendChangeLog($id: UUID!, $changeLog: Any!) @auth(level: NO_ACCESS) {
+  project_update(
+    id: $id
+    data: {
+      changeLog: $changeLog
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation SoftDeleteProject($id: UUID!) @auth(level: USER) {
+  project_update(
+    id: $id
+    data: {
+      isActive: false
+      deletedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# KNOWLEDGE BASE
+# ══════════════════════════════════════════════════════════════════════════════
+
+mutation CreateKnowledgeEntry(
+  $projectId: UUID!
+  $title: String!
+  $category: String!
+  $language: String
+  $framework: String
+  $description: String
+  $codeExample: String
+  $badExample: String
+  $tags: Any
+  $priority: Int
+) @auth(level: USER) {
+  knowledgeEntry_insert(data: {
+    project: { id: $projectId }
+    user: { uid_expr: "auth.uid" }
+    title: $title
+    category: $category
+    language: $language
+    framework: $framework
+    description: $description
+    codeExample: $codeExample
+    badExample: $badExample
+    tags: $tags
+    priority: $priority
+  })
+}
+
+mutation UpdateKnowledgeEntry(
+  $id: UUID!
+  $title: String
+  $category: String
+  $language: String
+  $framework: String
+  $description: String
+  $codeExample: String
+  $badExample: String
+  $tags: Any
+  $priority: Int
+) @auth(level: USER) {
+  knowledgeEntry_update(
+    id: $id
+    data: {
+      title: $title
+      category: $category
+      language: $language
+      framework: $framework
+      description: $description
+      codeExample: $codeExample
+      badExample: $badExample
+      tags: $tags
+      priority: $priority
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation DeleteKnowledgeEntry($id: UUID!) @auth(level: USER) {
+  knowledgeEntry_delete(id: $id)
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CODE REQUESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+mutation CreateCodeRequest(
+  $projectId: UUID!
+  $rawRequest: String!
+  $urgency: String
+  $areaOfApp: String
+  $screenshots: Any
+  $links: Any
+  $knowledgeBaseIds: Any
+) @auth(level: USER) {
+  codeRequest_insert(data: {
+    project: { id: $projectId }
+    user: { uid_expr: "auth.uid" }
+    rawRequest: $rawRequest
+    urgency: $urgency
+    areaOfApp: $areaOfApp
+    screenshots: $screenshots
+    links: $links
+    knowledgeBaseIds: $knowledgeBaseIds
+    status: "pending"
+  })
+}
+
+mutation UpdateCodeRequestStatus($id: UUID!, $status: String!, $modelUsed: String) @auth(level: NO_ACCESS) {
+  codeRequest_update(
+    id: $id
+    data: {
+      status: $status
+      modelUsed: $modelUsed
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GENERATED CODE
+# ══════════════════════════════════════════════════════════════════════════════
+
+mutation CreateGeneratedCode(
+  $requestId: UUID!
+  $uid: String!
+  $structuredTask: Any
+  $executionPlan: Any
+  $codeChanges: Any
+  $validationChecks: Any
+  $summary: String
+  $rollbackInstructions: String
+  $modelUsed: String
+  $inputTokens: Int
+  $outputTokens: Int
+  $costUsd: Float
+  $mode: String
+) @auth(level: NO_ACCESS) {
+  generatedCode_insert(data: {
+    request: { id: $requestId }
+    user: { uid: $uid }
+    structuredTask: $structuredTask
+    executionPlan: $executionPlan
+    codeChanges: $codeChanges
+    validationChecks: $validationChecks
+    summary: $summary
+    rollbackInstructions: $rollbackInstructions
+    modelUsed: $modelUsed
+    inputTokens: $inputTokens
+    outputTokens: $outputTokens
+    costUsd: $costUsd
+    mode: $mode
+  })
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERVERS
+# ══════════════════════════════════════════════════════════════════════════════
+
+mutation CreateServer(
+  $projectId: UUID!
+  $name: String!
+  $serverType: String!
+  $host: String!
+  $port: Int!
+  $username: String!
+  $remotePath: String
+  $description: String
+  $credentialSecretName: String
+) @auth(level: USER) {
+  server_insert(data: {
+    project: { id: $projectId }
+    user: { uid_expr: "auth.uid" }
+    name: $name
+    serverType: $serverType
+    host: $host
+    port: $port
+    username: $username
+    remotePath: $remotePath
+    description: $description
+    credentialSecretName: $credentialSecretName
+    isActive: true
+  })
+}
+
+mutation UpdateServer(
+  $id: UUID!
+  $name: String
+  $host: String
+  $port: Int
+  $username: String
+  $remotePath: String
+  $description: String
+  $credentialSecretName: String
+) @auth(level: USER) {
+  server_update(
+    id: $id
+    data: {
+      name: $name
+      host: $host
+      port: $port
+      username: $username
+      remotePath: $remotePath
+      description: $description
+      credentialSecretName: $credentialSecretName
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation RecordServerConnection($id: UUID!) @auth(level: NO_ACCESS) {
+  server_update(
+    id: $id
+    data: {
+      lastConnectedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation DeleteServer($id: UUID!) @auth(level: USER) {
+  server_update(
+    id: $id
+    data: {
+      isActive: false
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DEPLOY LOGS
+# ══════════════════════════════════════════════════════════════════════════════
+
+mutation CreateDeployLog(
+  $serverId: UUID!
+  $projectId: UUID!
+  $uid: String!
+  $generatedCodeId: UUID
+  $filesDeployed: Any
+  $status: String!
+  $errorMessage: String
+) @auth(level: NO_ACCESS) {
+  deployLog_insert(data: {
+    server: { id: $serverId }
+    project: { id: $projectId }
+    user: { uid: $uid }
+    generatedCode: { id: $generatedCodeId }
+    filesDeployed: $filesDeployed
+    status: $status
+    errorMessage: $errorMessage
+  })
+}

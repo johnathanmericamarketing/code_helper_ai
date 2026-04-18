@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "generation": {
+      "$requestId": {
+        ".read":  "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "deployment": {
+      "$jobId": {
+        ".read":  "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "presence": {
+      "$uid": {
+        ".read":  "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

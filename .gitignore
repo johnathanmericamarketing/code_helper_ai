@@ -105,3 +105,6 @@ frontend/node_modules/.cache/default-development/4.pack
 
 service-account.json
 *.json.json
+
+# Local-only reference docs — never commit
+SYSTEM_OVERVIEW.md
