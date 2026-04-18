@@ -1,0 +1,175 @@
+mutation UpsertUser(
+  $username: String!
+  $email: String!
+  $passwordHash: String!
+  $displayName: String
+  $plan: String!
+  $role: String!
+) @auth(level: USER) {
+  user_upsert(data: {
+    id_expr: "auth.uid"
+    username: $username
+    email: $email
+    passwordHash: $passwordHash
+    displayName: $displayName
+    plan: $plan
+    role: $role
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+    lastLogin_expr: "request.time"
+  })
+}
+
+mutation CreateProject(
+  $name: String!
+  $description: String
+  $domain: String
+  $repositoryUrl: String
+  $techStack: [String!]
+) @auth(level: USER) {
+  project_insert(data: {
+    userId_expr: "auth.uid"
+    name: $name
+    description: $description
+    domain: $domain
+    repositoryUrl: $repositoryUrl
+    techStack: $techStack
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation UpdateProject(
+  $id: UUID!
+  $name: String
+  $description: String
+  $domain: String
+  $repositoryUrl: String
+  $techStack: [String!]
+) @auth(level: USER) {
+  project_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $id } }
+        { userId: { eq_expr: "auth.uid" } }
+      ]
+    }
+    data: {
+      name: $name
+      description: $description
+      domain: $domain
+      repositoryUrl: $repositoryUrl
+      techStack: $techStack
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation DeleteProject($id: UUID!) @auth(level: USER) {
+  project_deleteMany(
+    where: {
+      _and: [
+        { id: { eq: $id } }
+        { userId: { eq_expr: "auth.uid" } }
+      ]
+    }
+  )
+}
+
+mutation CreateCodeRequest(
+  $projectId: UUID
+  $rawRequest: String!
+  $urgency: String
+  $areaOfApp: String
+) @auth(level: USER) {
+  codeRequest_insert(data: {
+    userId_expr: "auth.uid"
+    projectId: $projectId
+    rawRequest: $rawRequest
+    urgency: $urgency
+    areaOfApp: $areaOfApp
+    status: "pending"
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation UpdateCodeRequestStatus($id: UUID!, $status: String!) @auth(level: USER) {
+  codeRequest_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $id } }
+        { userId: { eq_expr: "auth.uid" } }
+      ]
+    }
+    data: {
+      status: $status
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation CreateKnowledgeBase(
+  $projectId: UUID
+  $title: String!
+  $category: String!
+  $description: String!
+  $priority: Int!
+  $language: String
+  $framework: String
+  $codeExample: String
+  $badExample: String
+) @auth(level: USER) {
+  knowledgeBase_insert(data: {
+    userId_expr: "auth.uid"
+    projectId: $projectId
+    title: $title
+    category: $category
+    description: $description
+    priority: $priority
+    language: $language
+    framework: $framework
+    codeExample: $codeExample
+    badExample: $badExample
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation DeleteKnowledgeBase($id: UUID!) @auth(level: USER) {
+  knowledgeBase_deleteMany(
+    where: {
+      _and: [
+        { id: { eq: $id } }
+        { userId: { eq_expr: "auth.uid" } }
+      ]
+    }
+  )
+}
+
+mutation CreateWorkspace(
+  $name: String!
+  $path: String!
+  $description: String
+  $isGitRepo: Boolean!
+) @auth(level: USER) {
+  workspace_insert(data: {
+    userId_expr: "auth.uid"
+    name: $name
+    path: $path
+    description: $description
+    isGitRepo: $isGitRepo
+    createdAt_expr: "request.time"
+  })
+}
+
+mutation DeleteWorkspace($id: UUID!) @auth(level: USER) {
+  workspace_deleteMany(
+    where: {
+      _and: [
+        { id: { eq: $id } }
+        { userId: { eq_expr: "auth.uid" } }
+      ]
+    }
+  )
+}

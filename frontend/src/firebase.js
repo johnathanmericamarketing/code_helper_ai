@@ -4,6 +4,8 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getAuth } from "firebase/auth";
+import { getDataConnect } from "firebase/data-connect";
+import { connectorConfig } from "@dataconnect/default";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -22,3 +24,4 @@ export const analytics = getAnalytics(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 export const auth = getAuth(app);
+export const dataConnect = getDataConnect(app, connectorConfig);

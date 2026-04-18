@@ -1,0 +1,156 @@
+type User @table(key: ["id"]) {
+  id: String!
+  username: String!
+  email: String!
+  passwordHash: String!
+  createdAt: Timestamp!
+  lastLogin: Timestamp!
+  displayName: String
+  profilePictureUrl: String
+  plan: String!
+  role: String!
+  aiApiKey: String
+  aiModel: String
+  maxTokens: Int
+  usageInputTokens: Int
+  usageOutputTokens: Int
+  usageCostUsd: Float
+  usageRequests: Int
+  autoApproveLowRisk: Boolean
+  stripeCustomerId: String
+  stripeSubscriptionId: String
+  updatedAt: Timestamp!
+}
+
+type Project @table {
+  user: User!
+  name: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  description: String
+  repositoryUrl: String
+  domain: String
+  techStack: [String!]
+}
+
+type ApiKey @table {
+  user: User!
+  name: String!
+  key: String!
+  serviceName: String!
+  createdAt: Timestamp!
+  description: String
+  associatedProject: Project
+}
+
+type CodeEditorActivity @table {
+  user: User!
+  activityType: String!
+  timestamp: Timestamp!
+  fileName: String!
+  codeSnippet: String
+  projectContext: Project
+}
+
+type CodeRequest @table {
+  user: User!
+  project: Project
+  rawRequest: String!
+  urgency: String
+  areaOfApp: String
+  status: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type GeneratedCode @table {
+  user: User!
+  request: CodeRequest!
+  summary: String!
+  rollbackInstructions: String
+  modelUsed: String!
+  inputTokens: Int!
+  outputTokens: Int!
+  costUsd: Float!
+  riskLevel: String
+  changeScopeSummary: String
+  createdAt: Timestamp!
+}
+
+type CodeChange @table {
+  generated: GeneratedCode!
+  filePath: String!
+  diff: String!
+  description: String
+}
+
+type ValidationCheck @table {
+  generated: GeneratedCode!
+  checkName: String!
+  result: String!
+  message: String
+  details: String
+}
+
+type KnowledgeBase @table {
+  user: User!
+  project: Project
+  title: String!
+  category: String!
+  language: String
+  framework: String
+  description: String!
+  codeExample: String
+  badExample: String
+  priority: Int!
+  primaryColor: String
+  secondaryColor: String
+  accentColor: String
+  typography: String
+  tone: String
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type Server @table {
+  user: User!
+  project: Project
+  name: String!
+  serverType: String!
+  host: String!
+  port: Int!
+  username: String!
+  remotePath: String!
+  description: String
+  isActive: Boolean!
+  lastConnected: Timestamp
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type GitHubConnection @table {
+  user: User!
+  name: String!
+  username: String
+  defaultRepo: String
+  defaultBranch: String!
+  isActive: Boolean!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type Workspace @table {
+  user: User!
+  name: String!
+  path: String!
+  description: String
+  isGitRepo: Boolean!
+  createdAt: Timestamp!
+}
+
+type GeneratedMedia @table {
+  user: User!
+  prompt: String!
+  costUsd: Float!
+  createdAt: Timestamp!
+}

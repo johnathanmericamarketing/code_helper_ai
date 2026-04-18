@@ -1,0 +1,150 @@
+query GetCurrentUser @auth(level: USER) {
+  user(key: { id_expr: "auth.uid" }) {
+    id
+    username
+    email
+    displayName
+    profilePictureUrl
+    plan
+    role
+    aiModel
+    maxTokens
+    usageInputTokens
+    usageOutputTokens
+    usageCostUsd
+    usageRequests
+    autoApproveLowRisk
+    createdAt
+    updatedAt
+    lastLogin
+  }
+}
+
+query ListProjectsForUser @auth(level: USER) {
+  projects(
+    where: { userId: { eq_expr: "auth.uid" } }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    name
+    description
+    domain
+    repositoryUrl
+    techStack
+    createdAt
+    updatedAt
+  }
+}
+
+query ListCodeRequests($projectId: UUID) @auth(level: USER) {
+  codeRequests(
+    where: {
+      _and: [
+        { userId: { eq_expr: "auth.uid" } }
+        { projectId: { eq: $projectId } }
+      ]
+    }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    rawRequest
+    urgency
+    areaOfApp
+    status
+    createdAt
+    updatedAt
+    project {
+      id
+      name
+    }
+  }
+}
+
+query GetGeneratedCodeForRequest($requestId: UUID!) @auth(level: USER) {
+  generatedCodes(
+    where: {
+      _and: [
+        { requestId: { eq: $requestId } }
+        { userId: { eq_expr: "auth.uid" } }
+      ]
+    }
+  ) {
+    id
+    summary
+    rollbackInstructions
+    modelUsed
+    inputTokens
+    outputTokens
+    costUsd
+    riskLevel
+    changeScopeSummary
+    createdAt
+  }
+}
+
+query ListKnowledgeBase($projectId: UUID) @auth(level: USER) {
+  knowledgeBases(
+    where: {
+      _and: [
+        { userId: { eq_expr: "auth.uid" } }
+        { projectId: { eq: $projectId } }
+      ]
+    }
+    orderBy: [{ priority: DESC }, { createdAt: DESC }]
+  ) {
+    id
+    title
+    category
+    language
+    framework
+    description
+    priority
+    tone
+    updatedAt
+  }
+}
+
+query ListServers @auth(level: USER) {
+  servers(
+    where: { userId: { eq_expr: "auth.uid" } }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    name
+    serverType
+    host
+    port
+    username
+    remotePath
+    description
+    isActive
+    lastConnected
+  }
+}
+
+query ListGitHubConnections @auth(level: USER) {
+  gitHubConnections(
+    where: { userId: { eq_expr: "auth.uid" } }
+  ) {
+    id
+    name
+    username
+    defaultRepo
+    defaultBranch
+    isActive
+  }
+}
+
+query ListWorkspaces @auth(level: USER) {
+  workspaces(
+    where: { userId: { eq_expr: "auth.uid" } }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    name
+    path
+    description
+    isGitRepo
+    createdAt
+  }
+}
