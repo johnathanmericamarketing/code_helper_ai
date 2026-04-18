@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VisualInspector } from '@/components/VisualInspector';
-import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History } from 'lucide-react';
+import { LiveSitePreview } from '@/components/LiveSitePreview';
+import { Sparkles, Send, Play, Loader2, Rocket, FileCode2, History, Eye, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService, generatedCodeService } from '@/lib/firebase-service';
 import { useProject } from '@/context/ProjectContext';
@@ -33,7 +34,7 @@ export const WorkspaceStudioPage = () => {
     setFutureAppCode(null);
 
     try {
-      toast.info('Initializing AI workspace logic...');
+      toast.info('Working on your changes…');
       
       // 1. Create a request footprint scoped to project
       const rawPayload = {
@@ -53,9 +54,9 @@ export const WorkspaceStudioPage = () => {
         const diffToRender = uiChange ? uiChange.diff : generated.code_changes[0].diff;
         
         setFutureAppCode(diffToRender);
-        toast.success('Code generation complete!');
+        toast.success('Your preview is ready — check it on the right!');
       } else {
-        toast.error('No UI changes returned from AI.');
+        toast.error("We couldn't build a preview for this request. Try rewording it.");
       }
     } catch (err) {
       console.error(err);
@@ -103,27 +104,33 @@ export const WorkspaceStudioPage = () => {
           </div>
         </div>
 
-        {/* Column 2: Current UI Inspector */}
+        {/* Column 2: Your Site (live preview) */}
         <div className="flex flex-col h-full bg-card relative">
+          <div className="h-10 border-b border-border flex items-center px-4 bg-muted/40 text-foreground/80 text-xs font-semibold shrink-0">
+            <span className="flex items-center gap-2 uppercase tracking-wider"><Eye className="w-3.5 h-3.5 text-primary"/> Your Site Now</span>
+          </div>
           <div className="flex-1 min-h-0 overflow-hidden bg-background">
-            <VisualInspector htmlContent={currentAppCode} title="Current Build" />
+            <LiveSitePreview initialUrl={activeProject?.domain} title="Your Site" />
           </div>
         </div>
 
-        {/* Column 3: Future UI Inspector */}
+        {/* Column 3: Your Site With Changes */}
         <div className="flex flex-col h-full bg-muted/10 relative border-l border-border/50">
+          <div className="h-10 border-b border-border flex items-center px-4 bg-muted/40 text-foreground/80 text-xs font-semibold shrink-0">
+            <span className="flex items-center gap-2 uppercase tracking-wider"><Wand2 className="w-3.5 h-3.5 text-primary"/> Your Site With Changes</span>
+          </div>
           <div className="flex-1 min-h-0 relative overflow-hidden bg-background">
             {isGenerating ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-10 gap-4">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-secondary-foreground font-medium animate-pulse">Running advanced AI models...</p>
+                <p className="text-secondary-foreground font-medium animate-pulse">Building your changes…</p>
               </div>
             ) : futureAppCode ? (
-              <VisualInspector htmlContent={futureAppCode} title="Preview Build" isPreview />
+              <VisualInspector htmlContent={futureAppCode} title="Your Site With Changes" isPreview />
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-4">
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-4 px-8 text-center">
                 <Sparkles className="w-16 h-16 text-primary/40" />
-                <p className="text-center px-8 font-medium">Your generated changes will appear here.<br/>Submit a request below to get started.</p>
+                <p className="font-medium">Tell us what to change below.<br/>You'll see how your site will look here before you publish.</p>
               </div>
             )}
             
@@ -134,7 +141,7 @@ export const WorkspaceStudioPage = () => {
                   onClick={handlePushCode}
                   className="w-full shadow-2xl shadow-primary/30 h-12 text-lg gap-3 bg-gradient-to-r from-primary to-blue-600 hover:scale-[1.02] transition-transform"
                 >
-                  <Rocket className="w-5 h-5"/> Push My New Code
+                  <Rocket className="w-5 h-5"/> Publish These Changes
                 </Button>
               </div>
             )}
@@ -166,7 +173,7 @@ export const WorkspaceStudioPage = () => {
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="This is where you will put in what you want. You can click on different parts with the visual inspector. Pick your model above."
+              placeholder="Describe what you want to change — for example, 'make the header dark blue' or 'add a contact form in the footer'."
               className="resize-none min-h-[80px] pr-16 bg-muted/20 border-border focus-visible:ring-primary/50 text-base py-3"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
