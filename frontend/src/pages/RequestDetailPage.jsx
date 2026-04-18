@@ -125,7 +125,7 @@ export const RequestDetailPage = () => {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Request not found</p>
-        <Button onClick={() => navigate('/')} className="mt-4">
+        <Button onClick={() => navigate('/app')} className="mt-4">
           Back to Dashboard
         </Button>
       </div>
@@ -137,7 +137,7 @@ export const RequestDetailPage = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
-          <Button variant="ghost" onClick={() => navigate('/history')} className="gap-2 mb-4">
+          <Button variant="ghost" onClick={() => navigate('/app/history')} className="gap-2 mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to History
           </Button>

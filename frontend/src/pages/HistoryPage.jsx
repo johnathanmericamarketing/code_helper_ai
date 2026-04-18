@@ -118,7 +118,7 @@ export const HistoryPage = () => {
                 <div
                   key={request.id}
                   className="flex items-start justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/request/${request.id}`)}
+                  onClick={() => navigate(`/app/request/${request.id}`)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">

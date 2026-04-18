@@ -271,7 +271,7 @@ export const SettingsPage = () => {
     toast.success('Copied to clipboard');
   };
 
-  const selectedModelInfo = CLAUDE_MODELS.find(m => m.id === selectedModel);
+  const selectedModelInfo = AI_MODELS.find(m => m.id === selectedModel);
 
   if (loading) {
     return (
@@ -504,7 +504,7 @@ export const SettingsPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3">
-                {CLAUDE_MODELS.map(model => (
+                {AI_MODELS.map(model => (
                   <div
                     key={model.id}
                     className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${selectedModel === model.id
