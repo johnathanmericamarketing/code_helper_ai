@@ -5,7 +5,9 @@ const { initializeApp } = require("firebase-admin/app");
 const ftp = require("basic-ftp");
 const Client = require("ssh2-sftp-client");
 
-initializeApp();
+initializeApp({
+  databaseURL: "https://code-helper-studio-default-rtdb.firebaseio.com"
+});
 const db = getFirestore();
 
 // ─── Sub-modules ─────────────────────────────────────────────────────────────
