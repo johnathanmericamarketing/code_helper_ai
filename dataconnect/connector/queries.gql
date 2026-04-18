@@ -83,7 +83,7 @@ query GetProject($id: UUID!) @auth(level: USER) {
 
 # List all knowledge entries for a project
 query ListKnowledgeByProject($projectId: UUID!) @auth(level: USER) {
-  knowledgeEntries(
+  knowledgeBases(
     where: {
       project: { id: { eq: $projectId } }
       user: { uid: { eq_expr: "auth.uid" } }
@@ -107,7 +107,7 @@ query ListKnowledgeByProject($projectId: UUID!) @auth(level: USER) {
 
 # Get ONLY brand identity entries — used to inject into AI system prompt
 query ListBrandKnowledge($projectId: UUID!) @auth(level: USER) {
-  knowledgeEntries(
+  knowledgeBases(
     where: {
       project: { id: { eq: $projectId } }
       user: { uid: { eq_expr: "auth.uid" } }

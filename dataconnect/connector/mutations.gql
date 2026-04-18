@@ -178,7 +178,7 @@ mutation CreateKnowledgeEntry(
   $tags: Any
   $priority: Int
 ) @auth(level: USER) {
-  knowledgeEntry_insert(data: {
+  knowledgeBase_insert(data: {
     project: { id: $projectId }
     user: { uid_expr: "auth.uid" }
     title: $title
@@ -205,7 +205,7 @@ mutation UpdateKnowledgeEntry(
   $tags: Any
   $priority: Int
 ) @auth(level: USER) {
-  knowledgeEntry_update(
+  knowledgeBase_update(
     id: $id
     data: {
       title: $title
@@ -223,7 +223,7 @@ mutation UpdateKnowledgeEntry(
 }
 
 mutation DeleteKnowledgeEntry($id: UUID!) @auth(level: USER) {
-  knowledgeEntry_delete(id: $id)
+  knowledgeBase_delete(id: $id)
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
