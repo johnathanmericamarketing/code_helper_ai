@@ -105,61 +105,41 @@ export const WorkspaceStudioPage = () => {
 
         {/* Column 2: Current UI Inspector */}
         <div className="flex flex-col h-full bg-card relative">
-          <div className="h-10 border-b border-border flex items-center px-4 bg-muted/30 text-muted-foreground text-xs font-semibold justify-between shrink-0">
-            <span className="flex items-center gap-2 uppercase tracking-wider"><History className="w-3.5 h-3.5"/> What Your Site Looks Like Now</span>
-            <Badge variant="secondary" className="scale-90">Live Check</Badge>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {/* We reuse the VisualInspector, overriding the card wrapper it natively provides */}
-            <div className="h-full scale-[0.95] origin-top">
-              <VisualInspector htmlContent={currentAppCode} />
-            </div>
-            
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center pointer-events-none mix-blend-overlay opacity-10">
-              {/* Optional overlay ghosting or watermark */}
-            </div>
+          <div className="flex-1 min-h-0 overflow-hidden bg-background">
+            <VisualInspector htmlContent={currentAppCode} title="Current Build" />
           </div>
         </div>
 
         {/* Column 3: Future UI Inspector */}
-        <div className="flex flex-col h-full bg-muted/10 relative">
-          <div className="h-10 border-b border-border flex items-center px-4 bg-accent/30 text-accent-foreground text-xs font-semibold justify-between shrink-0">
-            <span className="flex items-center gap-2 uppercase tracking-wider"><Sparkles className="w-3.5 h-3.5 text-primary"/> What Your New Site Could Look Like</span>
-            {futureAppCode && <Badge variant="default" className="scale-90 bg-primary">Pending Approval</Badge>}
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-between">
-            <div className="flex-1 relative p-2 h-full">
-              {isGenerating ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-10 gap-4">
-                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-secondary-foreground font-medium animate-pulse">Running advanced AI models...</p>
-                </div>
-              ) : futureAppCode ? (
-                <div className="h-[calc(100%-80px)] scale-[0.95] origin-top rounded-lg overflow-hidden border-2 border-primary/20 shadow-xl">
-                   <VisualInspector htmlContent={futureAppCode} />
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-4">
-                  <Sparkles className="w-16 h-16" />
-                  <p className="text-center px-8">Your generated changes will appear here. Submit a request below to get started.</p>
-                </div>
-              )}
-              
-              {/* Push Button Container fixed at bottom of this pane */}
-              {futureAppCode && !isGenerating && (
-                <div className="absolute bottom-4 left-4 right-4 z-20">
-                  <Button 
-                    onClick={handlePushCode}
-                    className="w-full shadow-2xl shadow-primary/30 h-12 text-lg gap-3 bg-gradient-to-r from-primary to-blue-600 hover:scale-[1.02] transition-transform"
-                  >
-                    <Rocket className="w-5 h-5"/> Push My New Code
-                  </Button>
-                </div>
-              )}
-            </div>
+        <div className="flex flex-col h-full bg-muted/10 relative border-l border-border/50">
+          <div className="flex-1 min-h-0 relative overflow-hidden bg-background">
+            {isGenerating ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-10 gap-4">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-secondary-foreground font-medium animate-pulse">Running advanced AI models...</p>
+              </div>
+            ) : futureAppCode ? (
+              <VisualInspector htmlContent={futureAppCode} title="Preview Build" isPreview />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-4">
+                <Sparkles className="w-16 h-16 text-primary/40" />
+                <p className="text-center px-8 font-medium">Your generated changes will appear here.<br/>Submit a request below to get started.</p>
+              </div>
+            )}
+            
+            {/* Push Button Container fixed at bottom of this pane */}
+            {futureAppCode && !isGenerating && (
+              <div className="absolute bottom-4 left-4 right-4 z-20">
+                <Button 
+                  onClick={handlePushCode}
+                  className="w-full shadow-2xl shadow-primary/30 h-12 text-lg gap-3 bg-gradient-to-r from-primary to-blue-600 hover:scale-[1.02] transition-transform"
+                >
+                  <Rocket className="w-5 h-5"/> Push My New Code
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-
       </div>
 
       {/* Bottom Bar: AI Target Command */}

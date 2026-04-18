@@ -9,7 +9,11 @@ import { MousePointer2, ImagePlus, Loader2, Maximize } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateImage } from '@/lib/media-service';
 
-export const VisualInspector = ({ htmlContent = '<div><h1>Hello World</h1><div style="width: 400px; height: 300px; background: #eee;">Click me</div></div>' }) => {
+export const VisualInspector = ({ 
+  htmlContent = '<div><h1>Hello World</h1><div style="width: 400px; height: 300px; background: #eee;">Click me</div></div>',
+  title = 'Visual Inspector',
+  isPreview = false
+}) => {
   const iframeRef = useRef(null);
   const [selectedElement, setSelectedElement] = useState(null); // { id, tagName, width, height }
   const [prompt, setPrompt] = useState('');
@@ -162,21 +166,50 @@ export const VisualInspector = ({ htmlContent = '<div><h1>Hello World</h1><div s
 
   return (
     <>
-      <Card className="border-border flex flex-col h-full overflow-hidden">
-        <CardHeader className="py-3 border-b border-border bg-muted/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MousePointer2 className="w-4 h-4 text-primary" />
-              <CardTitle className="text-sm font-medium">Visual Inspector</CardTitle>
+      <Card className="border-border/50 shadow-sm flex flex-col h-full overflow-hidden bg-background">
+        {/* ClickUp-style Toolbar / Browser Header */}
+        <div className="h-12 border-b border-border/50 bg-muted/30 px-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            {/* Fake Mac Window Controls */}
+            <div className="flex items-center gap-1.5 opacity-60">
+              <div className="w-3 h-3 rounded-full bg-destructive/80" />
+              <div className="w-3 h-3 rounded-full bg-warning/80" />
+              <div className="w-3 h-3 rounded-full bg-success/80" />
             </div>
-            <Badge variant="outline" className="text-xs bg-background/50">Point & Click</Badge>
+            
+            <div className="h-4 w-[1px] bg-border mx-1" />
+            
+            {/* Title */}
+            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-default">
+              <MousePointer2 className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold tracking-wide">{title}</span>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 relative bg-white">
+
+          <div className="flex items-center gap-3">
+            {/* URL Bar simulation */}
+            <div className="hidden md:flex items-center bg-background/80 border border-border/50 rounded-md px-3 py-1 shadow-sm h-8 w-[240px]">
+              <span className="text-[11px] text-muted-foreground truncate w-full">app.localhost/preview</span>
+            </div>
+
+            {isPreview ? (
+              <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-primary shadow-sm">
+                Pending Approval
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-sm border-primary/20 border">
+                Live Check
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        {/* Iframe Container with dot pattern background */}
+        <CardContent className="p-0 flex-1 relative bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
           <iframe
             ref={iframeRef}
             srcDoc={finalHtml}
-            className="w-full h-full min-h-[500px]"
+            className="w-full h-full min-h-[500px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]"
             sandbox="allow-scripts allow-same-origin"
             title="Visual Inspector"
           />
