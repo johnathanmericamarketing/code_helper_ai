@@ -6,10 +6,11 @@ import { BrandKitCard } from '@/components/BrandKitCard';
 import { Loader2, CheckCircle2, Rocket, Palette } from 'lucide-react';
 
 // Studio sub-components
-import { StudioLeftPanel }    from '@/components/studio/StudioLeftPanel';
-import { StudioTopBar }       from '@/components/studio/StudioTopBar';
-import { StudioComposer }     from '@/components/studio/StudioComposer';
-import { StudioPreviewStage } from '@/components/studio/StudioPreviewStage';
+import { StudioLeftPanel }         from '@/components/studio/StudioLeftPanel';
+import { StudioTopBar }            from '@/components/studio/StudioTopBar';
+import { StudioComposer }          from '@/components/studio/StudioComposer';
+import { StudioPreviewStage }      from '@/components/studio/StudioPreviewStage';
+import { StudioMobilePublishBar }  from '@/components/studio/StudioMobilePublishBar';
 
 import { toast } from 'sonner';
 import { requestsService, draftSessionsService, versionsService } from '@/lib/firebase-service';
@@ -328,6 +329,15 @@ export const WorkspaceStudioPage = () => {
         />
 
       </div>
+
+      {/* Mobile sticky publish bar — visible only on small screens when preview is ready */}
+      {futureAppCode && !isGenerating && (
+        <StudioMobilePublishBar
+          onPublish={() => setConfirmOpen(true)}
+          onDiscard={handleDiscard}
+          isPublishing={isPublishing}
+        />
+      )}
 
       {/* ── Modals ──────────────────────────────────────────────── */}
 
