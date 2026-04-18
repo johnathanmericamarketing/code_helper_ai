@@ -22,6 +22,7 @@ import { knowledgeService } from '@/lib/firebase-service';
 import { useProject } from '@/context/ProjectContext';
 import { HexColorPicker } from "react-colorful";
 import { toast } from 'sonner';
+import { BrandKitCard } from '@/components/BrandKitCard';
 
 const categoryIcons = {
   brand_identity: Palette,
@@ -48,7 +49,7 @@ const categoryColors = {
 export const KnowledgeBasePage = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { activeProject } = useProject();
+  const { activeProject, refreshActiveProject } = useProject();
   const [knowledge, setKnowledge] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -185,7 +186,7 @@ export const KnowledgeBasePage = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Knowledge Base</h1>
-          <p className="text-muted-foreground mt-1">Coding standards, best practices, and preferences for AI-generated code</p>
+          <p className="text-muted-foreground mt-1">Your brand kit and any coding standards or notes the AI should follow.</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -350,6 +351,11 @@ export const KnowledgeBasePage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Brand Kit (per-project, saved to project.brand, applied to every AI call) */}
+      {activeProject && (
+        <BrandKitCard project={activeProject} onSaved={refreshActiveProject} />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

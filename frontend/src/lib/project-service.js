@@ -83,6 +83,14 @@ export const projectService = {
     await updateDoc(docRef, { siteNotes: notes, updated_at: new Date() });
   },
 
+  async updateBrand(id, brand) {
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, {
+      brand: { ...brand, updatedAt: new Date() },
+      updated_at: new Date(),
+    });
+  },
+
   async appendChangeLog(id, entry) {
     const docRef = doc(db, PROJECTS_COL, id);
     await updateDoc(docRef, {

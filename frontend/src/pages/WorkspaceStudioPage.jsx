@@ -47,10 +47,19 @@ export const WorkspaceStudioPage = () => {
     try {
       const intake = activeProject.intake || {};
       const log = Array.isArray(activeProject.changeLog) ? activeProject.changeLog.slice(-5) : [];
+      const brand = activeProject.brand || {};
+      const brandNotes = [
+        brand.brandName   && `Brand: ${brand.brandName}`,
+        brand.tagline     && `Tagline: ${brand.tagline}`,
+        (brand.primaryColor || brand.secondaryColor || brand.accentColor) &&
+          `Colors: ${brand.primaryColor || ''} / ${brand.secondaryColor || ''} / ${brand.accentColor || ''}`,
+        (brand.headingFont || brand.bodyFont) && `Fonts: ${brand.headingFont || ''} / ${brand.bodyFont || ''}`,
+        brand.voice && `Voice: ${brand.voice}`,
+      ].filter(Boolean).join(' | ');
       const result = await requestsService.suggestIdeas({
         siteUrl: activeProject.domain || '',
         goals: intake.goals?.summary || '',
-        siteNotes: activeProject.siteNotes || '',
+        siteNotes: [activeProject.siteNotes, brandNotes].filter(Boolean).join('\n'),
         recentChanges: log.map((e) => e.summary).filter(Boolean),
       });
       setIdeas(Array.isArray(result.ideas) ? result.ideas : []);
@@ -87,6 +96,25 @@ export const WorkspaceStudioPage = () => {
       }
       if (intake.goals.pages?.length) {
         parts.push(`Pages in scope: ${intake.goals.pages.join(', ')}`);
+      }
+    }
+    const brand = activeProject.brand;
+    if (brand && Object.values(brand).some(Boolean)) {
+      const brandLines = [
+        brand.brandName   && `Brand name: ${brand.brandName}`,
+        brand.tagline     && `Tagline: ${brand.tagline}`,
+        (brand.primaryColor || brand.secondaryColor || brand.accentColor) &&
+          `Colors: primary ${brand.primaryColor || '—'}, secondary ${brand.secondaryColor || '—'}, accent ${brand.accentColor || '—'}`,
+        (brand.headingFont || brand.bodyFont) &&
+          `Fonts: headings ${brand.headingFont || '—'}, body ${brand.bodyFont || '—'}`,
+        brand.voice       && `Voice & tone: ${brand.voice}`,
+        brand.dos         && `Do: ${brand.dos}`,
+        brand.donts       && `Don't: ${brand.donts}`,
+        brand.logoUrl     && `Logo URL: ${brand.logoUrl}`,
+        brand.extraNotes  && `Brand notes: ${brand.extraNotes}`,
+      ].filter(Boolean);
+      if (brandLines.length) {
+        parts.push(`Brand kit (must be respected in every change):\n${brandLines.join('\n')}`);
       }
     }
     if (activeProject.siteNotes) {
