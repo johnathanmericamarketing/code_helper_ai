@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -9,14 +8,15 @@ import { VisualInspector } from '@/components/VisualInspector';
 import { LiveSitePreview } from '@/components/LiveSitePreview';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { BrandKitCard } from '@/components/BrandKitCard';
-import { SectionBlock } from '@/components/ui/section-block';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
-  Sparkles, Send, Loader2, Rocket, FileCode2, Eye, Wand2, Trash2, Settings2, 
-  Lightbulb, X, Palette, CheckCircle2, MonitorSmartphone, Bot, Globe
+import {
+  Sparkles, Send, Loader2, Rocket, Wand2, Trash2, Settings2,
+  Lightbulb, X, Palette, CheckCircle2, MonitorSmartphone, Bot,
+  Undo2, Save, LayoutTemplate, FolderKanban, Layers3, FileCode2,
+  Settings, ChevronDown, Plus, Globe, ArrowRight, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { requestsService } from '@/lib/firebase-service';
@@ -24,45 +24,92 @@ import { projectService } from '@/lib/project-service';
 import { useProject } from '@/context/ProjectContext';
 import { detectBrandSignals } from '@/lib/brand-detection';
 import { generationRTDB, useGenerationProgress } from '@/lib/realtime-service';
-import Editor from '@monaco-editor/react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const tabs = [
-  { id: "guided", label: "Guided" },
-  { id: "build", label: "Build" }
+  { id: 'guided', label: 'Guided' },
+  { id: 'build', label: 'Build' },
+  { id: 'review', label: 'Review' },
+];
+
+const studioNavItems = [
+  { to: '/app/studio',       icon: LayoutTemplate, label: 'Workspace Studio' },
+  { to: '/app',              icon: FolderKanban,   label: 'Projects' },
+  { to: '/app/brand',        icon: Palette,        label: 'Brand Kit' },
+  { to: '/app/history',      icon: Layers3,        label: 'Versions' },
+  { to: '/app/assets',       icon: FileCode2,      label: 'Files' },
+  { to: '/app/settings',     icon: Settings,       label: 'Settings' },
+];
+
+const guidedSteps = [
+  { num: 1, text: 'See your current site' },
+  { num: 2, text: 'Describe the change' },
+  { num: 3, text: 'Review the preview' },
+  { num: 4, text: 'Publish when ready' },
 ];
 
 export const WorkspaceStudioPage = () => {
   const { activeProject, refreshActiveProject } = useProject();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [activeTab, setActiveTab] = useState('guided');
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-5');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Live generation progress from RTDB
   const [activeRequestId, setActiveRequestId] = useState(null);
   const genProgress = useGenerationProgress(activeRequestId);
 
-  // State for the three panes
-  const [serverCode, setServerCode] = useState('// Connect to a repository to load active branch code here.\n\nfunction App() {\n  return <div>Hello World</div>;\n}');
   const [currentAppCode, setCurrentAppCode] = useState('<div><h1>Your App</h1><p>This represents the current state of your application UI.</p></div>');
   const [futureAppCode, setFutureAppCode] = useState(null);
 
-  // keep a single requestId state (removed duplicate declared later)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [ideas, setIdeas] = useState([]);
   const [ideasLoading, setIdeasLoading] = useState(false);
   const [showIdeas, setShowIdeas] = useState(false);
+  const [showPromptBar, setShowPromptBar] = useState(false);
 
-  // Brand detection state
-  const [brandDetected, setBrandDetected]   = useState(null); // result from detectBrandSignals
+  const [brandDetected, setBrandDetected] = useState(null);
   const [brandDialogOpen, setBrandDialogOpen] = useState(false);
 
-  const handleGetIdeas = async () => {
-    if (!activeProject) {
-      toast.error('Please select a project first.');
-      return;
+  useEffect(() => {
+    if (activeProject && !activeProject.intake?.completedAt) {
+      setWizardOpen(true);
     }
+  }, [activeProject?.id, activeProject?.intake?.completedAt]);
+
+  const buildProjectContext = () => {
+    if (!activeProject) return currentAppCode;
+    const parts = [`Current UI:\n${currentAppCode}`];
+    const intake = activeProject.intake;
+    if (intake?.goals?.summary) {
+      parts.push(`Project goals:\n${intake.goals.summary}`);
+    }
+    const brand = activeProject.brand;
+    if (brand && Object.values(brand).some(Boolean)) {
+      const brandLines = [
+        brand.brandName   && `Brand name: ${brand.brandName}`,
+        brand.tagline     && `Tagline: ${brand.tagline}`,
+        (brand.primaryColor || brand.secondaryColor) &&
+          `Colors: primary ${brand.primaryColor || '—'}, secondary ${brand.secondaryColor || '—'}`,
+        (brand.headingFont || brand.bodyFont) &&
+          `Fonts: headings ${brand.headingFont || '—'}, body ${brand.bodyFont || '—'}`,
+        brand.voice && `Voice: ${brand.voice}`,
+      ].filter(Boolean);
+      if (brandLines.length) parts.push(`Brand kit:\n${brandLines.join('\n')}`);
+    }
+    if (activeProject.siteNotes) parts.push(`Site notes:\n${activeProject.siteNotes}`);
+    const log = Array.isArray(activeProject.changeLog) ? activeProject.changeLog.slice(-5) : [];
+    if (log.length) parts.push(`Recent changes:\n${log.map(e => `- ${e.summary}`).join('\n')}`);
+    return parts.join('\n\n');
+  };
+
+  const handleGetIdeas = async () => {
+    if (!activeProject) { toast.error('Please select a project first.'); return; }
     setIdeasLoading(true);
     setShowIdeas(true);
     try {
@@ -72,136 +119,55 @@ export const WorkspaceStudioPage = () => {
       const brandNotes = [
         brand.brandName   && `Brand: ${brand.brandName}`,
         brand.tagline     && `Tagline: ${brand.tagline}`,
-        (brand.primaryColor || brand.secondaryColor || brand.accentColor) &&
-          `Colors: ${brand.primaryColor || ''} / ${brand.secondaryColor || ''} / ${brand.accentColor || ''}`,
-        (brand.headingFont || brand.bodyFont) && `Fonts: ${brand.headingFont || ''} / ${brand.bodyFont || ''}`,
-        brand.voice && `Voice: ${brand.voice}`,
+        brand.voice       && `Voice: ${brand.voice}`,
       ].filter(Boolean).join(' | ');
       const result = await requestsService.suggestIdeas({
         siteUrl: activeProject.domain || '',
         goals: intake.goals?.summary || '',
         siteNotes: [activeProject.siteNotes, brandNotes].filter(Boolean).join('\n'),
-        recentChanges: log.map((e) => e.summary).filter(Boolean),
+        recentChanges: log.map(e => e.summary).filter(Boolean),
       });
       setIdeas(Array.isArray(result.ideas) ? result.ideas : []);
-      if (result.mode === 'stub') {
-        toast.info('Showing example ideas. Add your API key in Settings for AI-tailored suggestions.');
-      }
+      if (result.mode === 'stub') toast.info('Showing example ideas. Add your API key in Settings for AI-tailored suggestions.');
     } catch (err) {
       console.error(err);
-      toast.error("Couldn't load ideas. Try again in a moment.");
+      toast.error("Couldn't load ideas. Try again.");
       setShowIdeas(false);
     } finally {
       setIdeasLoading(false);
     }
   };
 
-  // Auto-open intake wizard the first time a user enters the Studio for a
-  // project that hasn't completed intake yet.
-  useEffect(() => {
-    if (activeProject && !activeProject.intake?.completedAt) {
-      setWizardOpen(true);
-    }
-  }, [activeProject?.id, activeProject?.intake?.completedAt]);
-
-  // Build an AI context string from the saved intake + recent change log so
-  // every generation run gets the project's notes without re-entering them.
-  const buildProjectContext = () => {
-    if (!activeProject) return currentAppCode;
-    const parts = [`Current UI:\n${currentAppCode}`];
-    const intake = activeProject.intake;
-    if (intake?.goals?.summary) {
-      parts.push(`Project goals (from intake):\n${intake.goals.summary}`);
-      if (intake.goals.categories?.length) {
-        parts.push(`Focus areas: ${intake.goals.categories.join(', ')}`);
-      }
-      if (intake.goals.pages?.length) {
-        parts.push(`Pages in scope: ${intake.goals.pages.join(', ')}`);
-      }
-    }
-    const brand = activeProject.brand;
-    if (brand && Object.values(brand).some(Boolean)) {
-      const brandLines = [
-        brand.brandName   && `Brand name: ${brand.brandName}`,
-        brand.tagline     && `Tagline: ${brand.tagline}`,
-        (brand.primaryColor || brand.secondaryColor || brand.accentColor) &&
-          `Colors: primary ${brand.primaryColor || '—'}, secondary ${brand.secondaryColor || '—'}, accent ${brand.accentColor || '—'}`,
-        (brand.headingFont || brand.bodyFont) &&
-          `Fonts: headings ${brand.headingFont || '—'}, body ${brand.bodyFont || '—'}`,
-        brand.voice       && `Voice & tone: ${brand.voice}`,
-        brand.dos         && `Do: ${brand.dos}`,
-        brand.donts       && `Don't: ${brand.donts}`,
-        brand.logoUrl     && `Logo URL: ${brand.logoUrl}`,
-        brand.extraNotes  && `Brand notes: ${brand.extraNotes}`,
-      ].filter(Boolean);
-      if (brandLines.length) {
-        parts.push(`Brand kit (must be respected in every change):\n${brandLines.join('\n')}`);
-      }
-    }
-    if (activeProject.siteNotes) {
-      parts.push(`Site notes:\n${activeProject.siteNotes}`);
-    }
-    const log = Array.isArray(activeProject.changeLog) ? activeProject.changeLog.slice(-5) : [];
-    if (log.length) {
-      parts.push(`Recent changes on this site:\n${log.map((e) => `- ${e.summary}`).join('\n')}`);
-    }
-    return parts.join('\n\n');
-  };
-
   const handleGenerate = async () => {
     if (!prompt.trim() || !activeProject) {
-      if (!activeProject) toast.error("Please select a project first.");
+      if (!activeProject) toast.error('Please select a project first.');
       return;
     }
     setIsGenerating(true);
     setFutureAppCode(null);
-
     try {
       toast.info('Working on your changes…');
-
-      // 1. Create Firestore request record
-      const rawPayload = {
-        raw_request: prompt,
-        urgency: 'high',
-        area_of_app: 'frontend'
-      };
-      const req = await requestsService.create(rawPayload, activeProject.id);
+      const req = await requestsService.create({ raw_request: prompt, urgency: 'high', area_of_app: 'frontend' }, activeProject.id);
       setActiveRequestId(req.id);
-
-      // 2. Open a live RTDB progress node so the UI animates immediately
       await generationRTDB.init(req.id);
-
-      // 3. Call the Cloud Function (it writes progress steps to RTDB as it runs)
       const generated = await requestsService.process(req.id, prompt, buildProjectContext(), model);
-      
-      if (generated && generated.code_changes && generated.code_changes.length > 0) {
-        // Find HTML/React changes suitable for the visual inspector, otherwise fallback to the first diff
+      if (generated?.code_changes?.length > 0) {
         const uiChange = generated.code_changes.find(c => c.file_path.endsWith('.jsx') || c.file_path.endsWith('.html'));
-        const diffToRender = uiChange ? uiChange.diff : generated.code_changes[0].diff;
-
-        setFutureAppCode(diffToRender);
-        toast.success('Your preview is ready — check it on the right!');
-
-        // Scan all diffs for brand signals
-        const allDiffText = generated.code_changes.map((c) => c.diff || '').join('\n');
-        const responseText = (generated.summary || '') + '\n' + allDiffText;
-        const detected = detectBrandSignals(responseText, activeProject?.brand);
-        if (detected) {
-          setBrandDetected(detected);
-        }
+        setFutureAppCode(uiChange ? uiChange.diff : generated.code_changes[0].diff);
+        toast.success('Your preview is ready!');
+        const allDiffText = generated.code_changes.map(c => c.diff || '').join('\n');
+        const detected = detectBrandSignals((generated.summary || '') + '\n' + allDiffText, activeProject?.brand);
+        if (detected) setBrandDetected(detected);
       } else {
-        toast.error("We couldn't build a preview for this request. Try rewording it.");
+        toast.error("We couldn't build a preview. Try rewording your request.");
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to generate changes. Check your API keys and quota.');
+      toast.error('Failed to generate changes. Check your API keys.');
       setFutureAppCode('<!-- Error generating code -->');
     } finally {
       setIsGenerating(false);
-      // Clean up the RTDB progress node after a short delay
-      if (activeRequestId) {
-        setTimeout(() => generationRTDB.clear(activeRequestId).catch(() => {}), 3000);
-      }
+      if (activeRequestId) setTimeout(() => generationRTDB.clear(activeRequestId).catch(() => {}), 3000);
     }
   };
 
@@ -210,8 +176,6 @@ export const WorkspaceStudioPage = () => {
     setIsPublishing(true);
     try {
       await requestsService.updateStatus(activeRequestId, 'approved');
-      // Save a friendly entry to the project's change log so the user can see
-      // a timeline of what they've published over time.
       if (activeProject?.id) {
         try {
           await projectService.appendChangeLog(activeProject.id, {
@@ -220,9 +184,7 @@ export const WorkspaceStudioPage = () => {
             model,
           });
           refreshActiveProject?.();
-        } catch (logErr) {
-          console.warn('Could not append change log entry', logErr);
-        }
+        } catch (logErr) { console.warn('Could not append change log', logErr); }
       }
       toast.success('Your changes are now live!');
       setCurrentAppCode(futureAppCode);
@@ -230,7 +192,7 @@ export const WorkspaceStudioPage = () => {
       setPrompt('');
       setConfirmOpen(false);
     } catch (e) {
-      toast.error("We couldn't publish your changes. Please try again.");
+      toast.error("We couldn't publish. Please try again.");
     } finally {
       setIsPublishing(false);
     }
@@ -242,251 +204,418 @@ export const WorkspaceStudioPage = () => {
     toast.info('Changes discarded. Your live site is unchanged.');
   };
 
-  return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-background text-foreground">
-      {/* Header Block */}
-      <div className="border-b border-border bg-card px-5 py-4 shrink-0">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted/80">Builder mode</Badge>
-              Safe preview only
-            </div>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Workspace Studio</h1>
-          </div>
+  const handleUndo = () => {
+    if (futureAppCode) {
+      handleDiscard();
+    } else {
+      toast.info('Nothing to undo.');
+    }
+  };
 
-          <div className="flex items-center gap-3">
-            {/* Top actions */}
-            <div className="flex rounded-lg border border-border bg-muted/30 p-1">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab.id === 'guided' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  {tab.label}
-                </button>
+  return (
+    <div className="flex h-full overflow-hidden bg-background text-foreground">
+
+      {/* ── Left Studio Nav Panel ─────────────────────────────── */}
+      <div className="w-[220px] shrink-0 flex flex-col border-r border-border bg-card h-full overflow-y-auto">
+
+        {/* Logo / Title */}
+        <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
+            <LayoutTemplate className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-foreground leading-none">Workspace Studio</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">AI powered website builder</div>
+          </div>
+        </div>
+
+        {/* Project Selector */}
+        <div className="px-3 py-3 border-b border-border shrink-0">
+          <button
+            onClick={() => {}}
+            className="w-full flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 px-3 py-2.5 transition-colors text-left"
+          >
+            <div className="w-7 h-7 rounded-lg bg-foreground/10 flex items-center justify-center shrink-0">
+              <Layers3 className="w-3.5 h-3.5 text-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-foreground truncate">{activeProject?.name || 'Select Project'}</div>
+              <div className="text-[10px] text-muted-foreground truncate">Project workspace</div>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          </button>
+        </div>
+
+        {/* Studio Nav Items */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5">
+          {studioNavItems.map((item) => {
+            const isActive = item.to === '/app' ? location.pathname === '/app' : location.pathname.startsWith(item.to);
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors',
+                  isActive
+                    ? 'bg-indigo-50 text-indigo-700 font-medium dark:bg-indigo-500/10 dark:text-indigo-400'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* Guided Workflow Info Box */}
+        <div className="px-3 pb-4 shrink-0">
+          <div className="rounded-xl border border-border bg-muted/20 p-3">
+            <p className="text-[11px] font-semibold text-foreground mb-0.5">Guided workflow</p>
+            <p className="text-[10px] text-muted-foreground mb-3">Designed for any type of user</p>
+            <div className="space-y-2">
+              {guidedSteps.map((step) => (
+                <div key={step.num} className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full border border-border bg-card flex items-center justify-center shrink-0">
+                    <span className="text-[9px] font-semibold text-muted-foreground">{step.num}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{step.text}</span>
+                </div>
               ))}
             </div>
-            
-            <Button onClick={() => setWizardOpen(true)} variant="outline" className="gap-2 bg-card h-9">
-               <Settings2 className="w-4 h-4"/> Site Info
-               {activeProject?.intake?.completedAt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-            </Button>
-
-            <Button 
-              onClick={() => setConfirmOpen(true)}
-              disabled={!futureAppCode || isGenerating}
-              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white h-9"
-            >
-              <CheckCircle2 className="w-4 h-4"/>
-              Publish to Live
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* Main Content Space */}
-      <div className="flex-1 p-5 overflow-hidden">
-        <div className="mx-auto h-full flex flex-col lg:flex-row gap-5 max-w-[1600px]">
-          
-          {/* LEFT COLUMN: Input & Current Site */}
-          <div className="w-full lg:w-[450px] xl:w-[500px] flex flex-col gap-5 shrink-0 h-full overflow-y-auto pr-1">
-            
-            {/* AI Studio Assistant Block */}
-            <SectionBlock 
-              title="AI Studio Assistant" 
-              subtitle="Describe changes or new components you need"
-              icon={<Bot className="w-4 h-4 text-indigo-500" />}
-              className="shrink-0"
-            >
-              <div className="flex items-center justify-between gap-2 mb-2">
-			          <span className="text-xs font-bold uppercase tracking-widest text-indigo-500">What changes do you want?</span>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleGetIdeas}
-                    disabled={ideasLoading || !activeProject}
-                    className="h-7 text-[10px] text-muted-foreground hover:text-indigo-500 shrink-0"
-                    title="Not sure what to change? Get 5 ideas tailored to your site."
+      {/* ── Main Content Area ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+
+        {/* Top Action Bar */}
+        <div className="border-b border-border bg-card px-5 py-3 shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            {/* Title section */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="secondary" className="text-[10px] h-5 px-2 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
+                  Builder mode
+                </Badge>
+                <span className="text-[10px] text-muted-foreground">Safe preview only</span>
+              </div>
+              <h1 className="text-xl font-semibold text-foreground leading-none">Workspace Studio</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Compare your live site and AI changes side by side before publishing.</p>
+            </div>
+
+            {/* Tab + Action Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Guided / Build / Review tabs */}
+              <div className="flex rounded-lg border border-border bg-muted/30 p-0.5">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                      activeTab === tab.id
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
                   >
-                    {ideasLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Lightbulb className="w-3 h-3 text-yellow-500 mr-1"/>}
-                    {ideasLoading ? 'Thinking…' : 'Get ideas'}
-                  </Button>
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger className="h-7 text-[10px] bg-muted/40 border-border max-w-[130px] shrink-0">
-                      <SelectValue placeholder="Select Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="claude-opus-4-5">Claude Opus 4.5</SelectItem>
-                      <SelectItem value="claude-sonnet-4-5">Claude Sonnet 4.5</SelectItem>
-                      <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro</SelectItem>
-                      <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
 
-              {showIdeas && (
-                <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 relative mb-3">
+              {/* Undo */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUndo}
+                className="h-8 gap-1.5 text-xs bg-card"
+              >
+                <Undo2 className="w-3.5 h-3.5" /> Undo
+              </Button>
+
+              {/* Save Draft */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs bg-card"
+                disabled={!futureAppCode}
+                onClick={() => toast.info('Draft saved.')}
+              >
+                <Save className="w-3.5 h-3.5" /> Save draft
+              </Button>
+
+              {/* Publish Changes */}
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!futureAppCode || isGenerating}
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Rocket className="w-3.5 h-3.5" /> Publish changes
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Prompt Bar (show when tab is Build or when clicked) */}
+        {(activeTab === 'build' || showPromptBar) && (
+          <div className="border-b border-border bg-card/80 px-5 py-3 shrink-0">
+            <div className="flex items-center gap-3 max-w-4xl">
+              <div className="relative flex-1">
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe your changes… e.g. 'Redesign the hero section with a bold heading'"
+                  className="resize-none min-h-[40px] max-h-[100px] pr-14 text-sm py-2.5 bg-card border-border rounded-xl"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
+                  }}
+                />
+                <Button
+                  size="icon"
+                  className="absolute right-2 bottom-2 h-7 w-7 bg-indigo-600 hover:bg-indigo-700 rounded-lg"
+                  disabled={!prompt.trim() || isGenerating}
+                  onClick={handleGenerate}
+                >
+                  {isGenerating ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Send className="w-3.5 h-3.5 text-white" />}
+                </Button>
+              </div>
+              <div className="flex gap-2 items-center">
+                <Button variant="ghost" size="sm" onClick={handleGetIdeas} disabled={ideasLoading || !activeProject} className="h-8 text-xs gap-1.5">
+                  {ideasLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                  Ideas
+                </Button>
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger className="h-8 text-[11px] w-[140px] bg-card border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="claude-opus-4-5">Claude Opus 4.5</SelectItem>
+                    <SelectItem value="claude-sonnet-4-5">Claude Sonnet 4.5</SelectItem>
+                    <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro</SelectItem>
+                    <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPromptBar(false)}
+                  className="h-8 w-8 p-0 text-muted-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Ideas chips */}
+            {showIdeas && ideas.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {ideas.map((idea, i) => (
                   <button
-                    type="button"
-                    onClick={() => setShowIdeas(false)}
-                    className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                    key={i}
+                    onClick={() => { setPrompt(idea.prompt || idea.title); setShowIdeas(false); }}
+                    className="text-[11px] px-3 py-1 rounded-full border border-border bg-card hover:border-indigo-500/40 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition-colors"
                   >
-                    <X className="w-4 h-4"/>
+                    {idea.title}
                   </button>
-                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-2">
-                    <Lightbulb className="w-3.5 h-3.5 text-yellow-500"/> Ideas for your site
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Two-Pane Preview Area ─────────────────────────── */}
+        <div className="flex-1 flex gap-4 p-4 overflow-hidden min-h-0">
+
+          {/* LEFT: Your site now (Before) */}
+          <div className="flex-1 flex flex-col min-w-0 rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+            {/* Pane header */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0 bg-card">
+              <div>
+                <p className="text-xs font-semibold text-foreground">Your site now</p>
+                <p className="text-[10px] text-muted-foreground">Live production view for comparison</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] h-5 px-2 bg-muted/40">Before</Badge>
+                {!showPromptBar && activeTab === 'guided' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[10px] px-2 gap-1 bg-card"
+                    onClick={() => { setActiveTab('build'); setShowPromptBar(true); }}
+                  >
+                    <Wand2 className="w-3 h-3" /> Describe change
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Fake browser chrome */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border shrink-0">
+              <div className="flex gap-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+              </div>
+              <div className="flex-1 flex items-center gap-2 bg-card rounded-md px-2.5 h-6 border border-border">
+                <Globe className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
+                <span className="text-[10px] text-muted-foreground truncate">{activeProject?.domain || 'your-site.com'}</span>
+                <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1.5">Before</Badge>
+              </div>
+            </div>
+
+            {/* Live preview */}
+            <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-zinc-900 relative">
+              <LiveSitePreview
+                initialUrl={activeProject?.domain}
+                title="Your Site"
+              />
+              {/* Guided overlay when no project */}
+              {!activeProject && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/40 backdrop-blur-sm gap-3 px-6 text-center">
+                  <Globe className="w-10 h-10 text-muted-foreground/50" />
+                  <p className="text-sm font-medium text-muted-foreground">Select a project to see your live site</p>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/app')} className="gap-1.5">
+                    <Plus className="w-3.5 h-3.5" /> Create or select project
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Guided workflow CTA for tab = guided */}
+            {activeTab === 'guided' && (
+              <div className="border-t border-border px-4 py-3 bg-card shrink-0">
+                <button
+                  onClick={() => { setActiveTab('build'); setShowPromptBar(true); }}
+                  className="w-full flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Wand2 className="w-3.5 h-3.5" />
+                    Step 2: Describe the change you want
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: Your site with changes (After) */}
+          <div className="flex-1 flex flex-col min-w-0 rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+            {/* Pane header */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0 bg-card">
+              <div>
+                <p className="text-xs font-semibold text-foreground">Your site with changes</p>
+                <p className="text-[10px] text-muted-foreground">Safe AI preview before publish</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] h-5 px-2 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">After</Badge>
+                {futureAppCode && !isGenerating && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-destructive hover:text-destructive"
+                    onClick={handleDiscard}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Discard
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Fake browser chrome */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border shrink-0">
+              <div className="flex gap-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+              </div>
+              <div className="flex-1 flex items-center gap-2 bg-card rounded-md px-2.5 h-6 border border-border">
+                <Globe className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
+                <span className="text-[10px] text-muted-foreground truncate">{activeProject?.domain || 'your-site.com'}</span>
+                <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1.5 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400">After</Badge>
+              </div>
+            </div>
+
+            {/* Preview content */}
+            <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-zinc-900 relative">
+              {isGenerating ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm z-10 gap-4 px-8">
+                  <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm font-medium text-secondary-foreground text-center animate-pulse">
+                    {genProgress.step || 'Building your changes…'}
                   </p>
-                  {ideasLoading ? (
-                     <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                       <Loader2 className="w-3 h-3 animate-spin"/> Coming up with tailored ideas…
-                     </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {ideas.map((idea, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => { setPrompt(idea.prompt || idea.title); setShowIdeas(false); }}
-                          className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-indigo-500/40 hover:bg-indigo-500/5 text-left transition-colors"
-                          title={idea.prompt}
-                        >
-                          {idea.title}
-                        </button>
-                      ))}
-                      {ideas.length === 0 && <span className="text-xs text-muted-foreground">No ideas returned.</span>}
+                  {genProgress.progress > 0 && (
+                    <div className="w-full max-w-xs">
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>Progress</span>
+                        <span>{genProgress.progress}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                          style={{ width: `${genProgress.progress}%` }}
+                        />
+                      </div>
                     </div>
+                  )}
+                </div>
+              ) : futureAppCode ? (
+                <VisualInspector htmlContent={futureAppCode} title="Your Preview" isPreview />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center gap-4 px-8 text-center bg-muted/5">
+                  {activeTab === 'guided' ? (
+                    <>
+                      {/* Guided: show mini mock of "after" design */}
+                      <div className="w-full max-w-[280px] rounded-xl border border-indigo-200 bg-indigo-600 dark:border-indigo-500/30 dark:bg-indigo-600/90 p-5 text-left shadow-lg">
+                        <p className="text-[10px] font-semibold text-indigo-200 uppercase tracking-wide mb-2">AI website builder</p>
+                        <h2 className="text-base font-bold text-white mb-1.5">Launch faster with a cleaner, smarter homepage</h2>
+                        <p className="text-[10px] text-indigo-200/80 mb-4">Stronger hierarchy, clearer CTA focus, and a more premium visual style designed to increase confidence.</p>
+                        <div className="flex gap-2">
+                          <div className="h-7 px-3 rounded-md bg-white text-indigo-700 text-[10px] font-semibold flex items-center">Start free</div>
+                          <div className="h-7 px-3 rounded-md bg-indigo-500/40 text-white text-[10px] font-semibold flex items-center">Book demo</div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground max-w-xs">
+                        Describe what you want on the left, then your AI-generated preview will appear here.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-12 h-12 text-indigo-500/30" />
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Describe a change above and hit Send.<br />Your preview will appear here.
+                      </p>
+                    </>
                   )}
                 </div>
               )}
 
-              <div className="relative group">
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe your changes... e.g. 'Redesign the hero section'"
-                  className="resize-none min-h-[100px] pr-16 bg-card border-border focus-visible:ring-indigo-500/50 text-sm py-3 shadow-sm rounded-xl"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleGenerate();
-                    }
-                  }}
-                />
-                <Button 
-                  size="icon"
-                  className="absolute right-2 bottom-2 h-9 w-9 bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-transform group-focus-within:scale-105 rounded-lg"
-                  disabled={!prompt.trim() || isGenerating}
-                  onClick={handleGenerate}
-                >
-                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white ml-0.5" />}
-                </Button>
-              </div>
-
-               {/* Brand Detection Banner placed right under prompt if triggered */}
-               {brandDetected && (
-                 <div className="mt-4 border border-indigo-500/30 bg-indigo-500/5 rounded-lg p-3 flex flex-col gap-3">
-                   <div className="flex items-center gap-2 text-xs">
-                     <Palette className="w-4 h-4 text-indigo-400 shrink-0" />
-                     <span className="text-foreground font-medium flex-1">Brand signals detected</span>
-                     <button
-                       type="button"
-                       onClick={() => setBrandDetected(null)}
-                       className="text-muted-foreground hover:text-foreground shrink-0"
-                     >
-                       <X className="w-3.5 h-3.5" />
-                     </button>
-                   </div>
-                   <Button
-                     size="sm"
-                     variant="outline"
-                     className="w-full text-xs h-8 bg-card border-indigo-500/40 text-indigo-500 hover:bg-indigo-500/10"
-                     onClick={() => setBrandDialogOpen(true)}
-                   >
-                     Review & Save to Brand Kit
-                   </Button>
-                 </div>
-               )}
-            </SectionBlock>
-
-            {/* Current Site View Block */}
-            <SectionBlock
-              title="Your Site Now"
-              subtitle="Current production view"
-              icon={<Eye className="w-4 h-4 text-emerald-500" />}
-              className="flex-1 min-h-[300px] flex flex-col"
-            >
-              <div className="flex-1 min-h-0 bg-background overflow-hidden relative -mx-5 -mb-5 mt-2 border-t border-border rounded-b-xl">
-                 <LiveSitePreview initialUrl={activeProject?.domain} title="Your Site" />
-              </div>
-            </SectionBlock>
-          </div>
-
-          {/* RIGHT COLUMN: Visual Preview */}
-          <div className="flex-1 flex flex-col min-w-0">
-             <SectionBlock
-               title="Preview Workspace"
-               subtitle="Review staging changes before publishing"
-               icon={<MonitorSmartphone className="w-4 h-4 text-blue-500" />}
-               className="flex-1 h-full flex flex-col shadow-sm"
-               hasWrapper={false}
-             >
-               <div className="flex-1 relative bg-background overflow-hidden flex flex-col -mx-5 -mb-5 mt-2 border-t border-border rounded-b-xl">
-                  {isGenerating ? (
-                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm z-10 gap-5 px-8">
-                       <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                       <p className="text-secondary-foreground font-medium text-center animate-pulse">
-                         {genProgress.step || 'Building your changes…'}
-                       </p>
-                       {genProgress.progress > 0 && (
-                         <div className="w-full max-w-xs">
-                           <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                             <span>Progress</span>
-                             <span>{genProgress.progress}%</span>
-                           </div>
-                           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                             <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${genProgress.progress}%` }} />
-                           </div>
-                         </div>
-                       )}
-                     </div>
-                  ) : futureAppCode ? (
-                     <VisualInspector htmlContent={futureAppCode} title="Your Preview" isPreview />
-                  ) : (
-                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 space-y-4 px-8 text-center bg-muted/10">
-                       <Wand2 className="w-16 h-16 text-indigo-500/40" />
-                       <p className="font-medium text-sm">Tell us what to change on the left.<br/>You'll see your live preview here.</p>
-                     </div>
-                  )}
-               </div>
-
-               {/* Publish / Discard bar overlay fixed at bottom of the preview pane */}
-               {futureAppCode && !isGenerating && (
-                  <div className="absolute bottom-5 left-5 right-5 z-20 flex flex-col gap-2 mx-auto max-w-lg">
-                    <div className="bg-card/95 backdrop-blur-md border border-indigo-500/30 rounded-xl p-3 shadow-2xl">
-                      <div className="flex gap-2">
-                        <Button variant="ghost" onClick={handleDiscard} className="text-muted-foreground hover:text-destructive w-1/3">
-                           <Trash2 className="w-4 h-4 mr-2"/> Discard
-                        </Button>
-                        <Button 
-                          onClick={() => setConfirmOpen(true)} 
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
-                        >
-                           <CheckCircle2 className="w-4 h-4 mr-2"/> Publish Changes Now
-                        </Button>
-                      </div>
-                    </div>
+              {/* Publish bar at bottom of after pane */}
+              {futureAppCode && !isGenerating && (
+                <div className="absolute bottom-4 left-4 right-4 z-20">
+                  <div className="bg-card/95 backdrop-blur-md border border-indigo-500/30 rounded-xl p-3 shadow-2xl flex gap-2">
+                    <Button variant="ghost" onClick={handleDiscard} className="text-muted-foreground hover:text-destructive flex-1 text-xs h-8">
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Discard
+                    </Button>
+                    <Button
+                      onClick={() => setConfirmOpen(true)}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 shadow-lg shadow-indigo-500/20"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Publish Changes Now
+                    </Button>
                   </div>
-               )}
-             </SectionBlock>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
       </div>
 
+      {/* ── Modals ─────────────────────────────────────────────── */}
       <IntakeWizard
         open={wizardOpen}
         onOpenChange={setWizardOpen}
@@ -498,11 +627,11 @@ export const WorkspaceStudioPage = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-indigo-600"/>
+              <Rocket className="w-5 h-5 text-indigo-600" />
               Publish changes to your live site?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Your visitors will see the new version right away. You can always describe new changes afterward, but this replaces what's on your site now.
+              Your visitors will see the new version right away. You can always describe new changes afterward.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -512,7 +641,7 @@ export const WorkspaceStudioPage = () => {
               disabled={isPublishing}
               className="bg-indigo-600 hover:bg-indigo-700 gap-2 text-white"
             >
-              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle2 className="w-4 h-4"/>}
+              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               {isPublishing ? 'Publishing…' : 'Yes, publish now'}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -527,7 +656,7 @@ export const WorkspaceStudioPage = () => {
               Update Brand Kit — {activeProject?.name || 'this project'}
             </DialogTitle>
             <DialogDescription>
-              The AI found new brand values in your recent change. Review and save them to make sure every future generation stays on-brand.
+              The AI found new brand values. Review and save them to keep future generations on-brand.
             </DialogDescription>
           </DialogHeader>
           <div className="p-6 pt-4">
@@ -545,7 +674,6 @@ export const WorkspaceStudioPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };
