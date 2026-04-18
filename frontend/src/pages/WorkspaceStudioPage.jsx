@@ -12,8 +12,8 @@ import { StudioComposer }     from '@/components/studio/StudioComposer';
 import { StudioPreviewStage } from '@/components/studio/StudioPreviewStage';
 
 import { toast } from 'sonner';
-import { requestsService }    from '@/lib/firebase-service';
-import { projectService }     from '@/lib/project-service';
+import { requestsService, draftSessionsService, versionsService } from '@/lib/firebase-service';
+import { projectService }         from '@/lib/project-service';
 import { useProject }         from '@/context/ProjectContext';
 import { detectBrandSignals } from '@/lib/brand-detection';
 import { generationRTDB, useGenerationProgress } from '@/lib/realtime-service';
@@ -56,6 +56,14 @@ export const WorkspaceStudioPage = () => {
       setWizardOpen(true);
     }
   }, [activeProject?.id, activeProject?.intake?.completedAt]);
+
+  // Record last-opened timestamp whenever Studio is mounted with a project
+  useEffect(() => {
+    if (activeProject?.id) {
+      projectService.touchLastOpened(activeProject.id).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProject?.id]);
 
   // Auto-open brand dialog after generation detects new brand signals
   useEffect(() => {
@@ -150,8 +158,21 @@ export const WorkspaceStudioPage = () => {
         const uiChange = generated.code_changes.find(
           c => c.file_path.endsWith('.jsx') || c.file_path.endsWith('.html')
         );
-        setFutureAppCode(uiChange ? uiChange.diff : generated.code_changes[0].diff);
+        const html = uiChange ? uiChange.diff : generated.code_changes[0].diff;
+        setFutureAppCode(html);
         toast.success('Your preview is ready!');
+
+        // Phase 4B — auto-save draft after generation
+        if (activeProject?.id) {
+          const draftId = await draftSessionsService.save(activeProject.id, {
+            previewHtml:  html,
+            latestPrompt: prompt,
+          }).catch(() => null);
+          if (draftId) {
+            projectService.setActiveDraft(activeProject.id, draftId).catch(() => {});
+          }
+        }
+
         const allDiffText = generated.code_changes.map(c => c.diff || '').join('\n');
         const detected = detectBrandSignals((generated.summary || '') + '\n' + allDiffText, activeProject?.brand);
         if (detected) setBrandDetected(detected);
@@ -175,13 +196,31 @@ export const WorkspaceStudioPage = () => {
       await requestsService.updateStatus(activeRequestId, 'approved');
       if (activeProject?.id) {
         try {
+          // Phase 4C — write an immutable version snapshot
+          const version = await versionsService.create(activeProject.id, {
+            type:        'published',
+            prompt:      prompt.trim().slice(0, 500) || 'Published a change',
+            model,
+            previewHtml: futureAppCode,
+          });
+
+          // Phase 4A — record on the project which version is live
+          await projectService.setLastPublished(activeProject.id, version.id);
+
+          // Append to the human-readable change log
           await projectService.appendChangeLog(activeProject.id, {
             summary:   prompt.trim().slice(0, 200) || 'Published a change',
             requestId: activeRequestId,
+            versionId: version.id,
             model,
           });
+
+          // Phase 4B — clear the active draft
+          await draftSessionsService.clear(activeProject.id);
+          await projectService.setActiveDraft(activeProject.id, null);
+
           refreshActiveProject?.();
-        } catch (logErr) { console.warn('Could not append change log', logErr); }
+        } catch (logErr) { console.warn('Could not write version/log', logErr); }
       }
       toast.success('Your changes are now live!');
       setCurrentAppCode(futureAppCode);
@@ -198,7 +237,38 @@ export const WorkspaceStudioPage = () => {
   const handleDiscard = () => {
     setFutureAppCode(null);
     setActiveRequestId(null);
+    // Phase 4B — clear the saved draft
+    if (activeProject?.id) {
+      draftSessionsService.clear(activeProject.id).catch(() => {});
+      projectService.setActiveDraft(activeProject.id, null).catch(() => {});
+    }
     toast.info('Changes discarded. Your live site is unchanged.');
+  };
+
+  const handleSaveDraft = async () => {
+    if (!futureAppCode || !activeProject?.id) {
+      toast.info('Nothing to save yet.');
+      return;
+    }
+    try {
+      // Phase 4C — write a draft version snapshot
+      const version = await versionsService.create(activeProject.id, {
+        type:        'draft',
+        prompt:      prompt.trim().slice(0, 500) || 'Saved draft',
+        model,
+        previewHtml: futureAppCode,
+      });
+      // Phase 4B — keep draft_sessions in sync
+      await draftSessionsService.save(activeProject.id, {
+        previewHtml:  futureAppCode,
+        latestPrompt: prompt,
+      });
+      await projectService.setActiveDraft(activeProject.id, version.id);
+      toast.success('Draft saved.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not save draft.');
+    }
   };
 
   const handleUndo = () => {
@@ -221,7 +291,7 @@ export const WorkspaceStudioPage = () => {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onUndo={handleUndo}
-          onSaveDraft={() => toast.info('Draft saved.')}
+          onSaveDraft={handleSaveDraft}
           onPublish={() => setConfirmOpen(true)}
           canPublish={!!futureAppCode}
           isGenerating={isGenerating}

@@ -33,6 +33,16 @@ function normalizeDates(doc) {
   return out;
 }
 
+/** Derive a human-readable setup status from a project doc's fields. */
+export function deriveSetupStatus(project) {
+  if (!project) return 'incomplete';
+  const hasBrand = !!project.brand?.brandName;
+  const hasHosting = (project.servers?.length > 0) || !!project.domain;
+  if (hasBrand && hasHosting) return 'complete';
+  if (!hasBrand) return 'needs_brand';
+  return 'needs_hosting';
+}
+
 export const projectService = {
   async create(data) {
     if (!auth.currentUser?.uid) throw new Error("Must be logged in to create a project.");
@@ -43,10 +53,17 @@ export const projectService = {
       domain: data.domain || '',
       tech_stack: data.tech_stack || [],
       description: data.description || '',
+      // Status fields (Phase 4A)
+      defaultMode: 'guided',
+      setupStatus: 'needs_brand',
+      brandStatus: 'incomplete',
+      hostingStatus: 'disconnected',
+      lastOpenedAt: null,
+      activeDraftId: null,
+      lastPublishedVersionId: null,
       created_at: now,
       updated_at: now,
     };
-    
     const docRef = await addDoc(collection(db, PROJECTS_COL), payload);
     return { id: docRef.id, ...payload };
   },
@@ -54,9 +71,19 @@ export const projectService = {
   async list() {
     if (!auth.currentUser?.uid) return [];
     const snap = await getDocs(
-      query(collection(db, PROJECTS_COL), where('userId', '==', auth.currentUser.uid), orderBy('created_at', 'desc'))
+      query(
+        collection(db, PROJECTS_COL),
+        where('userId', '==', auth.currentUser.uid),
+        orderBy('created_at', 'desc')   // fallback; UI sorts by lastOpenedAt
+      )
     );
-    return snap.docs.map((d) => normalizeDates({ id: d.id, ...d.data() }));
+    const projects = snap.docs.map((d) => normalizeDates({ id: d.id, ...d.data() }));
+    // Sort by lastOpenedAt desc first, then created_at
+    return projects.sort((a, b) => {
+      const aTime = a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : new Date(a.created_at).getTime();
+      const bTime = b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : new Date(b.created_at).getTime();
+      return bTime - aTime;
+    });
   },
 
   async get(id) {
@@ -97,6 +124,39 @@ export const projectService = {
       changeLog: arrayUnion({ ...entry, at: new Date() }),
       updated_at: new Date(),
     });
+  },
+
+  /** Phase 4A — record when Studio was last opened for this project */
+  async touchLastOpened(id) {
+    if (!id) return;
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, { lastOpenedAt: new Date(), updated_at: new Date() });
+  },
+
+  /** Phase 4A — update computed status fields after brand or hosting changes */
+  async refreshStatus(id) {
+    if (!id) return;
+    const project = await projectService.get(id);
+    if (!project) return;
+    const setupStatus   = deriveSetupStatus(project);
+    const brandStatus   = project.brand?.brandName ? 'complete' : 'incomplete';
+    const hostingStatus = project.domain ? 'connected' : 'disconnected';
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, { setupStatus, brandStatus, hostingStatus, updated_at: new Date() });
+  },
+
+  /** Phase 4A — set the active draft session ID on the project */
+  async setActiveDraft(id, draftId) {
+    if (!id) return;
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, { activeDraftId: draftId ?? null, updated_at: new Date() });
+  },
+
+  /** Phase 4A — record which version was last published */
+  async setLastPublished(id, versionId) {
+    if (!id) return;
+    const docRef = doc(db, PROJECTS_COL, id);
+    await updateDoc(docRef, { lastPublishedVersionId: versionId, updated_at: new Date() });
   },
 
   async delete(id) {

@@ -341,3 +341,124 @@ export const workspacesService = {
     await deleteDoc(snap.docs[0].ref);
   },
 };
+
+// ─────────────────────────────────────────────
+// Draft Sessions  (Phase 4B)
+// One active draft per project. Auto-saved after every generation.
+// Cleared or archived when a version is published.
+// ─────────────────────────────────────────────
+
+const DRAFTS_COL = 'draft_sessions';
+
+export const draftSessionsService = {
+  /**
+   * Upsert the active draft for a project.
+   * Uses a deterministic doc ID: "draft_{projectId}" so there is exactly one.
+   */
+  async save(projectId, draftData) {
+    if (!projectId) return null;
+    const draftId = `draft_${projectId}`;
+    const docRef  = doc(db, DRAFTS_COL, draftId);
+    const payload = {
+      id:           draftId,
+      projectId,
+      userId:       auth.currentUser?.uid,
+      previewHtml:  draftData.previewHtml  ?? null,
+      latestPrompt: draftData.latestPrompt ?? null,
+      reviewSummary: draftData.reviewSummary ?? null,
+      scope:        draftData.scope        ?? null,
+      goal:         draftData.goal         ?? null,
+      constraints:  draftData.constraints  ?? null,
+      brandSuggestion: draftData.brandSuggestion ?? null,
+      updatedAt:    new Date(),
+    };
+    // setDoc with merge so we never lose partial fields on partial saves
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(docRef, payload, { merge: true });
+    return draftId;
+  },
+
+  /** Read the current draft for a project (null if none exists) */
+  async get(projectId) {
+    if (!projectId) return null;
+    const draftId = `draft_${projectId}`;
+    const snap    = await getDoc(doc(db, DRAFTS_COL, draftId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() };
+  },
+
+  /** Clear the draft (called after publish or explicit discard) */
+  async clear(projectId) {
+    if (!projectId) return;
+    const draftId = `draft_${projectId}`;
+    try { await deleteDoc(doc(db, DRAFTS_COL, draftId)); }
+    catch { /* already gone — no-op */ }
+  },
+};
+
+// ─────────────────────────────────────────────
+// Versions  (Phase 4C)
+// Immutable snapshots written on publish, save-draft, and restore.
+// Stored as a top-level collection (not sub-collection) so the
+// Versions page can query across projects with a single index.
+// ─────────────────────────────────────────────
+
+const VERSIONS_COL = 'versions';
+
+export const versionsService = {
+  /**
+   * Write a new version snapshot.
+   * Called by the Studio on publish, save-draft, and restore.
+   */
+  async create(projectId, versionData) {
+    if (!projectId) throw new Error('projectId is required');
+    const { v4: uuidv4 } = await import('uuid');
+    const id  = uuidv4();
+    const now = new Date();
+    const payload = {
+      id,
+      projectId,
+      userId:                auth.currentUser?.uid,
+      // 'draft' | 'published' | 'restored'
+      type:                  versionData.type           ?? 'draft',
+      name:                  versionData.name           ?? null,
+      summary:               versionData.summary        ?? null,
+      prompt:                versionData.prompt         ?? null,
+      model:                 versionData.model          ?? null,
+      previewHtml:           versionData.previewHtml    ?? null,
+      restoreSourceVersionId: versionData.restoreSourceVersionId ?? null,
+      createdAt: now,
+    };
+    await addDoc(collection(db, VERSIONS_COL), payload);
+    return payload;
+  },
+
+  /** List all versions for a project, newest first */
+  async list(projectId) {
+    if (!projectId) return [];
+    const snap = await getDocs(
+      query(
+        collection(db, VERSIONS_COL),
+        where('projectId', '==', projectId),
+        orderBy('createdAt', 'desc')
+      )
+    );
+    return snap.docs.map((d) => {
+      const v = { id: d.id, ...d.data() };
+      if (v.createdAt?.toDate) v.createdAt = v.createdAt.toDate();
+      return v;
+    });
+  },
+
+  /** Get a single version by its document ID */
+  async getById(versionDocId) {
+    const snap = await getDocs(
+      query(collection(db, VERSIONS_COL), where('id', '==', versionDocId))
+    );
+    if (snap.empty) return null;
+    const v = { id: snap.docs[0].id, ...snap.docs[0].data() };
+    if (v.createdAt?.toDate) v.createdAt = v.createdAt.toDate();
+    return v;
+  },
+};
+
