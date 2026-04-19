@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { BrandIdentityCard } from '@/components/brand/BrandIdentityCard';
 import { BrandRulesCard } from '@/components/brand/BrandRulesCard';
 import { BrandPromptRulesCard } from '@/components/brand/BrandPromptRulesCard';
+import { BrandContentLibraryCard } from '@/components/brand/BrandContentLibraryCard';
 
 export const BrandPage = () => {
   const { activeProject, refreshActiveProject } = useProject();
@@ -75,9 +76,11 @@ export const BrandPage = () => {
           <BrandRulesCard brand={brand} onChange={setBrand} />
         </div>
 
-        {/* Right Column - Prompt Instructions */}
+        {/* Right Column - Prompt Instructions & Content */}
         <div className="space-y-6">
           <BrandPromptRulesCard brand={brand} onChange={setBrand} />
+          
+          <BrandContentLibraryCard brand={brand} onChange={setBrand} />
           
           {/* Subtle suggestions/info card */}
           <div className="bg-surface border border-subtle rounded-[var(--radius-card)] p-5">

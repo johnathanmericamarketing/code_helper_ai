@@ -193,6 +193,8 @@ Address before production: move creds to Secret Manager / KMS; wire Stripe signa
 
 Append one line per meaningful shipped change. Most recent first.
 
+- `2026-04-19` · branch `main` · **External Assets & Content**: Implemented "Import via URL" for images/videos in `AssetsPage` and a "Content Library" for documents/links in `BrandPage`, bypassing complex OAuth flows for Drive/Dropbox in favor of direct public link sharing.
+
 - `2026-04-19` · branch `main` · **Studio Enhancements**: Added "Prompt Library" dialog to Studio Composer allowing users to select pre-made prompts or save their custom prompts directly to their Firebase user profile.
 - `2026-04-19` · branch `main` · **Usage Tracking**: Added a global API cost pill (`UsagePill`) directly into `AppHeader.jsx` to let users track real-time monthly usage spend anywhere in the workspace.
 - `2026-04-19` · branch `main` · **Settings Update**: Split API key input in Settings into explicit `claude_api_key` and `gemini_api_key` fields.
