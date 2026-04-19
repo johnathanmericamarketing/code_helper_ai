@@ -173,17 +173,10 @@ Address before production: move creds to Secret Manager / KMS; wire Stripe signa
 
 ## 9. Known gaps / placeholders
 
-- `WorkspaceStudioPage` Column 1 "Your### Phase 3 & 4: System Logic Upgrades
-- Added `getLatestDraft` to Firebase requests service.
-- Implemented auto-loading of Drafts into the Studio on mount.
-- Built real Version Restore flow, separating Drafts from Published snapshots.
-- Added right-side `StudioReviewRail` that parses AI change summaries from the database and displays safe publishing checklists.
-
-### Phase 5: Landing Page Rebuild
-- Completely replaced the legacy `LandingPage.jsx` with a modern, 10-section modular layout.
-- Removed old background images in favor of clean gradients and a CSS-based `HeroStudioVisual` mockup.
-- Aligned messaging with the "guided workspace" product positioning.
-- Added sections: Value Strip, Why it exists, How it works, Features, Audience, Differentiator, and FAQ. no repo fetch/commit flow.
+- `WorkspaceStudioPage` Column 1 "Your Code From Server" uses hardcoded placeholder — **no real repo sync yet**.
+- Stripe billing is stubbed end-to-end.
+- `KnowledgeBasePage` — CRUD exists but content is not parsed / vectorized / used as AI context.
+- `IntegrationsPage` — stores GitHub token but no repo fetch/commit flow.
 - `tests/test_security_basics.py` — references missing `backend.server` (FastAPI-era relic).
 - Unused components: `DashboardCharts.jsx`, `CodeDiffViewer.jsx`, several shadcn kit pieces.
 
@@ -200,6 +193,8 @@ Address before production: move creds to Secret Manager / KMS; wire Stripe signa
 
 Append one line per meaningful shipped change. Most recent first.
 
+- `2026-04-19` · branch `main` · **Phase 5 (Landing Page Rebuild)**: Replaced legacy landing page with a 10-section modular layout using `HeroStudioVisual` CSS mock.
+- `2026-04-19` · branch `main` · **Phase 3 & 4 (System Logic Upgrades)**: Draft auto-loading, Review Rail, and Version Restore.
 - `2026-04-19` · branch `main` · **Phase 2 (Core Pages Rebuild)**: Rebuilt Projects Page, Brand Page, and Versions Page into modular components (`components/projects`, `components/brand`, `components/versions`). UI matches the new premium design spec while preserving existing Firebase logic.
 - `2026-04-19` · branch `main` · **Phase 1 (System Architecture Rebuild)**: Created unified design tokens (`tokens.css`, `index.css`). Standardized internal routing and file names (e.g. `DashboardPage` -> `ProjectsPage`). Replaced old `Sidebar`/`Header` with `AppSidebar`, `AppHeader`, and `MobileBottomNav` for the new premium workspace aesthetic.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · Dedicated "Branding" button in Knowledge Base header (outline, Palette icon, green dot when set) opens BrandKitCard in a modal scoped to the active project. Inline card removed.
