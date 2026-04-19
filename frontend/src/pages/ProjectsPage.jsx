@@ -15,7 +15,7 @@ import { useProject } from '@/context/ProjectContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
-export const DashboardPage = () => {
+export const ProjectsPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { projects, activeProject, refreshProjects, selectProject } = useProject();

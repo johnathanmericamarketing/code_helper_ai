@@ -46,7 +46,7 @@ const categoryColors = {
   best_practices: 'bg-primary/10 text-primary',
 };
 
-export const KnowledgeBasePage = () => {
+export const BrandPage = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { activeProject, refreshActiveProject } = useProject();

@@ -31,7 +31,7 @@ const serverTypeColors = {
   ssh: 'bg-primary/10 text-primary',
 };
 
-export const ServersPage = () => {
+export const ConnectionsPage = () => {
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);

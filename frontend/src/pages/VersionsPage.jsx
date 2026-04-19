@@ -34,7 +34,7 @@ function formatTime(d) {
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-export const HistoryPage = () => {
+export const VersionsPage = () => {
   const navigate = useNavigate();
   const { activeProject } = useProject();
 

@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { requestsService, generatedCodeService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
 
-export const RequestDetailPage = () => {
+export const RequestDebugPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [request, setRequest] = useState(null);

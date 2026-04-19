@@ -2,17 +2,16 @@ import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/layouts/MainLayout";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { WorkspaceStudioPage } from "@/pages/WorkspaceStudioPage";
-import { HistoryPage } from "@/pages/HistoryPage";
-import { RequestDetailPage } from "@/pages/RequestDetailPage";
-import { KnowledgeBasePage } from "@/pages/KnowledgeBasePage";
-import { IntegrationsPage } from "@/pages/IntegrationsPage";
-import { ServersPage } from "@/pages/ServersPage";
+import { ProjectsPage } from "@/pages/ProjectsPage";
+import { StudioPage } from "@/pages/StudioPage";
+import { VersionsPage } from "@/pages/VersionsPage";
+import { RequestDebugPage } from "@/pages/RequestDebugPage";
+import { BrandPage } from "@/pages/BrandPage";
+import { ConnectionsPage } from "@/pages/ConnectionsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { AdminPage } from "@/pages/AdminPage";
-import { AssetStudioPage } from "@/pages/AssetStudioPage";
+import { AssetsPage } from "@/pages/AssetsPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -65,14 +64,17 @@ function App() {
                     <MainLayout />
                   </ProtectedRoute>
                 }>
-                  <Route index element={<DashboardPage />} />
-                  <Route path="studio" element={<WorkspaceStudioPage />} />
-                  <Route path="history" element={<HistoryPage />} />
-                  <Route path="request/:id" element={<RequestDetailPage />} />
-                  <Route path="knowledge" element={<KnowledgeBasePage />} />
-                  <Route path="assets" element={<AssetStudioPage />} />
-                  <Route path="integrations" element={<IntegrationsPage />} />
-                  <Route path="servers" element={<ServersPage />} />
+                  <Route index element={<ProjectsPage />} />
+                  <Route path="studio" element={<StudioPage />} />
+                  <Route path="history" element={<VersionsPage />} />
+                  <Route path="versions" element={<VersionsPage />} />
+                  <Route path="request/:id" element={<RequestDebugPage />} />
+                  <Route path="knowledge" element={<BrandPage />} />
+                  <Route path="brand" element={<BrandPage />} />
+                  <Route path="assets" element={<AssetsPage />} />
+                  <Route path="integrations" element={<ConnectionsPage />} />
+                  <Route path="servers" element={<ConnectionsPage />} />
+                  <Route path="connections" element={<ConnectionsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
 

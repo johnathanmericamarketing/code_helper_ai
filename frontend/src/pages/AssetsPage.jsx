@@ -8,7 +8,7 @@ import { ImagePlus, Copy, Code, CheckCircle, Wand2, Sparkles, Loader2 } from 'lu
 import { toast } from 'sonner';
 import { generateImage } from '@/lib/media-service';
 
-export const AssetStudioPage = () => {
+export const AssetsPage = () => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { base64, mimeType, costUsd }

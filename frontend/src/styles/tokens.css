@@ -1,0 +1,39 @@
+:root {
+  /* Core Backgrounds */
+  --bg-app: #F5F7FB;
+  --bg-surface: #FFFFFF;
+  --bg-muted: #F8FAFC;
+  
+  /* Borders */
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+
+  /* Typography */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+
+  /* Accents */
+  --accent-50: #F5F3FF;
+  --accent-100: #EDE9FE;
+  --accent-200: #DDD6FE;
+  --accent-500: #8B5CF6;
+  --accent-600: #7C3AED;
+  --accent-700: #6D28D9;
+
+  /* Status */
+  --success-bg: #ECFDF5;
+  --success-text: #047857;
+  --warning-bg: #FEF3C7;
+  --warning-text: #92400E;
+  --danger-bg: #FEF2F2;
+  --danger-text: #B91C1C;
+  --info-bg: #EFF6FF;
+  --info-text: #1D4ED8;
+  
+  /* Radius */
+  --radius-card: 20px;
+  --radius-button: 16px;
+  --radius-pill: 999px;
+  --radius-preview: 24px;
+}

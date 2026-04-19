@@ -18,7 +18,7 @@ import { projectService } from '@/lib/project-service';
 import { useProject } from '@/context/ProjectContext';
 import Editor from '@monaco-editor/react';
 
-export const WorkspaceStudioPage = () => {
+export const StudioPage = () => {
   const { activeProject, refreshActiveProject } = useProject();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-5');
