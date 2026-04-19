@@ -115,145 +115,61 @@ function SectionLabel({ children }) {
 
 function BrowserPreview({ after = false }) {
   return (
-    <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-500">
-            https://your-site.com
-          </div>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* Mini chrome bar */}
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-3 py-2">
+        <div className="flex gap-1">
+          <span className="h-2 w-2 rounded-full bg-slate-200" />
+          <span className="h-2 w-2 rounded-full bg-slate-200" />
+          <span className="h-2 w-2 rounded-full bg-slate-200" />
         </div>
-        <Badge
-          variant="secondary"
-          className={
-            after
-              ? "rounded-full bg-violet-50 text-violet-700"
-              : "rounded-full bg-slate-100 text-slate-600"
-          }
-        >
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${after ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-500"
+          }`}>
           {after ? "After" : "Before"}
-        </Badge>
+        </span>
       </div>
-
-      <div className="p-4 bg-slate-50">
-        <div
-          className={`overflow-hidden rounded-[24px] border ${after ? "border-violet-200" : "border-slate-200"
-            } bg-white`}
-        >
-          <div className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <div
-                className={`grid h-8 w-8 place-items-center rounded-xl ${after
-                  ? "bg-violet-100 text-violet-700"
-                  : "bg-slate-100 text-slate-600"
-                  }`}
-              >
-                <Sparkles className="h-4 w-4" />
-              </div>
-              Acme Studio
-            </div>
-            <div className="flex gap-2 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200 px-3 py-1.5">
-                Product
-              </span>
-              <span className="rounded-full border border-slate-200 px-3 py-1.5">
-                Pricing
-              </span>
-              <span
-                className={`rounded-full px-3 py-1.5 ${after
-                  ? "bg-slate-950 text-white"
-                  : "border border-slate-200"
-                  }`}
-              >
-                Start free
-              </span>
-            </div>
-          </div>
-
-          <div
-            className={`mx-4 mb-4 rounded-[28px] px-6 py-8 ${after
-              ? "bg-gradient-to-br from-slate-950 via-violet-950 to-slate-900 text-white"
-              : "bg-slate-100 text-slate-900"
-              }`}
-          >
-            <div className="max-w-md">
-              <div
-                className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${after
-                  ? "bg-white/10 text-violet-100"
-                  : "bg-white text-slate-600"
-                  }`}
-              >
-                <Bot className="h-3.5 w-3.5" />
-                AI website builder
-              </div>
-              <h4 className="text-2xl font-semibold leading-tight">
-                {after
-                  ? "Stronger hierarchy and a premium hero layout"
-                  : "Build your next website with AI"}
-              </h4>
-              <p
-                className={`mt-3 text-sm leading-6 ${after ? "text-slate-300" : "text-slate-600"
-                  }`}
-              >
-                {after
-                  ? "Cleaner spacing, better CTA contrast, and improved visual focus without touching the live site yet."
-                  : "Describe what you want and generate interface changes instantly from a simple prompt."}
-              </p>
-              <div className="mt-5 flex gap-3">
-                <div
-                  className={`rounded-xl px-4 py-2.5 text-sm font-medium ${after
-                    ? "bg-white text-slate-950"
-                    : "bg-slate-900 text-white"
-                    }`}
-                >
-                  Start free
-                </div>
-                <div
-                  className={`rounded-xl px-4 py-2.5 text-sm ${after
-                    ? "border border-white/15 bg-white/5 text-white"
-                    : "border border-slate-200 bg-white text-slate-700"
-                    }`}
-                >
-                  Book demo
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden grid gap-4 px-4 pb-4 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={`rounded-2xl border p-4 ${after
-                  ? "border-violet-100 bg-violet-50/40"
-                  : "border-slate-200 bg-slate-50"
-                  }`}
-              >
-                <div
-                  className={`mb-3 grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 ${after
-                    ? "bg-white text-violet-600"
-                    : "bg-white text-slate-600"
-                    }`}
-                >
-                  <Layers3 className="h-4 w-4" />
-                </div>
-                <div className="h-3 w-2/3 rounded bg-slate-200" />
-                <div className="mt-2 h-3 w-full rounded bg-slate-100" />
-                <div className="mt-2 h-3 w-5/6 rounded bg-slate-100" />
-              </div>
-            ))}
-          </div>
+      {/* Hero block */}
+      <div className={`px-3 py-4 ${after
+        ? "bg-gradient-to-br from-slate-950 via-violet-950 to-slate-900 text-white"
+        : "bg-slate-100 text-slate-900"
+        }`}>
+        <div className={`mb-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] ${after ? "bg-white/10 text-violet-200" : "bg-white text-slate-500"
+          }`}>
+          <Bot className="h-2.5 w-2.5" />
+          AI builder
         </div>
+        <div className="text-xs font-semibold leading-snug">
+          {after ? "Premium hero layout" : "Build with AI"}
+        </div>
+        <div className={`mt-1 text-[10px] leading-relaxed ${after ? "text-slate-300" : "text-slate-500"
+          }`}>
+          {after ? "Better CTA contrast, cleaner spacing." : "Describe your change in plain language."}
+        </div>
+        <div className="mt-2 flex gap-1.5">
+          <div className={`rounded-lg px-2.5 py-1 text-[10px] font-medium ${after ? "bg-white text-slate-950" : "bg-slate-900 text-white"
+            }`}>Start free</div>
+          <div className={`rounded-lg px-2.5 py-1 text-[10px] ${after ? "border border-white/20 bg-white/5 text-white" : "border border-slate-200 bg-white text-slate-600"
+            }`}>Demo</div>
+        </div>
+      </div>
+      {/* Skeleton cards */}
+      <div className="grid grid-cols-3 gap-2 bg-white p-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className={`rounded-xl border p-2 ${after ? "border-violet-100 bg-violet-50/40" : "border-slate-200 bg-slate-50"
+            }`}>
+            <div className={`mb-1.5 h-5 w-5 rounded-lg border border-slate-100 ${after ? "bg-white" : "bg-white"
+              }`} />
+            <div className="h-1.5 w-2/3 rounded bg-slate-200" />
+            <div className="mt-1 h-1.5 w-full rounded bg-slate-100" />
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 function FeatureCard({ icon: Icon, title, text }) {
+
   return (
     <Card className="rounded-[28px] border-slate-200 bg-white shadow-sm">
       <CardContent className="p-7">
@@ -325,7 +241,7 @@ export function LandingPage() {
         <div className="absolute inset-x-0 top-0 h-[520px] bg-[linear-gradient(to_bottom,rgba(139,92,246,0.10),transparent)]" />
         <div className="absolute left-1/2 top-32 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-200/30 blur-3xl" />
 
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_420px] lg:px-8 lg:py-24">
+        <div className="relative mx-auto grid max-w-7xl items-start gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_420px] lg:px-8 lg:py-20">
           <div className="max-w-2xl">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -386,8 +302,8 @@ export function LandingPage() {
             className="relative lg:ml-auto lg:max-w-[420px]"
           >
             <Card className="overflow-hidden rounded-[32px] border-slate-200 bg-white shadow-[0_20px_80px_rgba(15,23,42,0.10)] max-h-[820px]">
-              <CardContent className="p-0">
-                <div className="border-b border-slate-200 px-5 py-4">
+              <CardContent className="p-0 overflow-hidden flex flex-col">
+                <div className="border-b border-slate-200 px-5 py-4 shrink-0">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-semibold text-slate-900">
@@ -406,62 +322,37 @@ export function LandingPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 p-4 overflow-hidden">
-                  <div className="grid gap-4 lg:grid-cols-2">
+                <div className="flex flex-col gap-3 p-4 overflow-hidden">
+                  {/* Before / After miniature previews */}
+                  <div className="grid grid-cols-2 gap-3">
                     <BrowserPreview after={false} />
                     <BrowserPreview after />
                   </div>
 
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                      <div className="text-sm font-medium text-slate-700">
-                        Prompt
-                      </div>
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-700">
-                        Make the hero section feel more premium, improve the
-                        call-to-action, and keep my current brand colors.
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {[
-                          "Whole page",
-                          "Increase conversions",
-                          "Keep colors",
-                          "Keep copy",
-                        ].map((chip, i) => (
-                          <Badge
-                            key={chip}
-                            variant="secondary"
-                            className={
-                              i < 2
-                                ? "rounded-full bg-violet-50 text-violet-700"
-                                : "rounded-full bg-slate-200 text-slate-700"
-                            }
-                          >
-                            {chip}
-                          </Badge>
-                        ))}
-                      </div>
+                  {/* Prompt + What changed — stacked, compact */}
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="text-xs font-medium text-slate-500 mb-1.5">Prompt</div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700 line-clamp-2">
+                      Make the hero feel more premium, improve the CTA, keep brand colors.
                     </div>
+                  </div>
 
-                    <div className="space-y-4 rounded-[24px] border border-slate-200 bg-white p-4">
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900">
-                          What changed
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          Plain-English review
-                        </div>
-                      </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-semibold text-slate-900">What changed</div>
+                      <div className="text-[10px] text-slate-400">Plain-English review</div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5">
                       {[
-                        "Cleaned the hero spacing and content hierarchy",
-                        "Made the primary CTA more visible",
-                        "Kept the current brand color direction",
+                        "Cleaned the hero spacing",
+                        "Made the primary CTA visible",
+                        "Kept brand color direction",
                       ].map((item) => (
                         <div
                           key={item}
-                          className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-[11px] text-slate-700"
                         >
-                          <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                          <BadgeCheck className="h-3 w-3 shrink-0 text-emerald-600" />
                           {item}
                         </div>
                       ))}
