@@ -193,6 +193,8 @@ Address before production: move creds to Secret Manager / KMS; wire Stripe signa
 
 Append one line per meaningful shipped change. Most recent first.
 
+- `2026-04-19` · branch `main` · **Phase 2 (Core Pages Rebuild)**: Rebuilt Projects Page, Brand Page, and Versions Page into modular components (`components/projects`, `components/brand`, `components/versions`). UI matches the new premium design spec while preserving existing Firebase logic.
+- `2026-04-19` · branch `main` · **Phase 1 (System Architecture Rebuild)**: Created unified design tokens (`tokens.css`, `index.css`). Standardized internal routing and file names (e.g. `DashboardPage` -> `ProjectsPage`). Replaced old `Sidebar`/`Header` with `AppSidebar`, `AppHeader`, and `MobileBottomNav` for the new premium workspace aesthetic.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · Dedicated "Branding" button in Knowledge Base header (outline, Palette icon, green dot when set) opens BrandKitCard in a modal scoped to the active project. Inline card removed.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · `BrandKitCard` on Knowledge Base page: structured per-project brand (name, tagline, primary/secondary/accent colors via `react-colorful`, heading/body fonts, voice, do/don't, logo URL, extra notes). Saved to `project.brand` via new `projectService.updateBrand`. Piped into Studio AI context + "Get ideas" suggestions so every generation respects the brand.
 - `2026-04-18` · branch `claude/review-requirements-T9xHd` · Desktop/Mobile viewport toggle on both `LiveSitePreview` and `VisualInspector` (iconed segmented control; mobile = 390px-wide framed preview with scroll + drop shadow). Works on "Your Site Now" and "Your Site With Changes" panes.
