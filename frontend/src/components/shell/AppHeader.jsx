@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Search, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { getUserProfile } from '@/lib/user-service';
 
 const routeMeta = {
   '/app': { title: 'Projects', sub: 'Manage and select workspaces' },
@@ -24,6 +25,15 @@ export const AppHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const [cost, setCost] = useState(0);
+
+  useEffect(() => {
+    if (currentUser) {
+      getUserProfile().then(p => {
+        setCost(p?.usage_this_month?.cost_usd || 0);
+      }).catch(err => console.error('Failed to load usage for header:', err));
+    }
+  }, [currentUser]);
 
   const meta = routeMeta[location.pathname] || { title: 'Workspace', sub: 'AI Studio' };
   const initials = (currentUser?.displayName || currentUser?.email || 'U')
@@ -52,6 +62,17 @@ export const AppHeader = () => {
       </div>
 
       <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden lg:flex items-center gap-1.5 h-9 rounded-xl border-subtle text-secondary-custom hover:bg-muted-custom"
+          onClick={() => navigate('/app/settings')}
+          title="Monthly API Cost"
+        >
+          <Zap className="w-3.5 h-3.5 text-[var(--accent-500)]" />
+          <span className="font-mono text-xs font-semibold">${cost.toFixed(2)}</span>
+        </Button>
+
         <Button
           variant="outline"
           size="sm"
