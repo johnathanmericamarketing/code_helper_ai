@@ -25,7 +25,7 @@ export const StudioTopBar = ({ projectName, onPublish, canPublish }) => {
         <Button variant="outline" size="sm" className="gap-2 rounded-[var(--radius-button)] border-subtle h-8" disabled>
           <Undo className="w-3.5 h-3.5" /> Undo
         </Button>
-        <Button variant="outline" size="sm" className="gap-2 rounded-[var(--radius-button)] border-subtle h-8" disabled>
+        <Button variant="outline" size="sm" onClick={onSaveDraft} className="gap-2 rounded-[var(--radius-button)] border-subtle h-8">
           <Save className="w-3.5 h-3.5" /> Save draft
         </Button>
         <Button 

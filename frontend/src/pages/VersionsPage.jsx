@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProject } from '@/context/ProjectContext';
 import { requestsService } from '@/lib/firebase-service';
 import { toast } from 'sonner';
@@ -9,6 +10,7 @@ import { VersionCompareDrawer } from '@/components/versions/VersionCompareDrawer
 
 export const VersionsPage = () => {
   const { activeProject } = useProject();
+  const navigate = useNavigate();
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -41,10 +43,16 @@ export const VersionsPage = () => {
     v.prompt?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleRestore = (version) => {
-    // In Phase 4, this will trigger a real rollback in the Studio.
-    // For now, we mock the UI action.
-    toast.success('Version queued for restore. Open Studio to review.');
+  const handleRestore = async (version) => {
+    try {
+      // Mark it as a draft (validated) so the Studio picks it up
+      await requestsService.updateStatus(version.id, 'validated');
+      toast.success('Version loaded as active draft.');
+      navigate('/app/studio', { state: { restoreRequestId: version.id } });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to restore version.');
+    }
   };
 
   if (!activeProject) {

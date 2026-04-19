@@ -84,6 +84,40 @@ export const requestsService = {
     return normalizeDates(snap.docs[0].data());
   },
 
+  async getLatestDraft(projectId) {
+    const activeProject = projectId || localStorage.getItem('codehelper_active_project');
+    if (!activeProject) return null;
+
+    const snap = await getDocs(
+      query(
+        collection(db, REQUESTS_COL), 
+        where('userId', '==', auth.currentUser?.uid), 
+        where('projectId', '==', activeProject),
+        where('status', '==', 'validated'),
+        orderBy('created_at', 'desc')
+      )
+    );
+    if (snap.empty) return null;
+    return normalizeDates(snap.docs[0].data());
+  },
+
+  subscribeToProjectRequests(projectId, onData, onError) {
+    const { onSnapshot } = require('firebase/firestore');
+    const q = query(
+      collection(db, REQUESTS_COL), 
+      where('userId', '==', auth.currentUser?.uid),
+      where('projectId', '==', projectId),
+      orderBy('created_at', 'desc')
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(d => normalizeDates(d.data()));
+      onData(docs);
+    }, (err) => {
+      if (onError) onError(err);
+    });
+  },
+
   async updateStatus(id, status) {
     const snap = await getDocs(
       query(collection(db, REQUESTS_COL), where('id', '==', id))

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { requestsService } from '@/lib/firebase-service';
 import { projectService } from '@/lib/project-service';
@@ -14,18 +15,63 @@ import { StudioTopBar } from '@/components/studio/StudioTopBar';
 import { StudioPreviewStage } from '@/components/studio/StudioPreviewStage';
 import { StudioComposer } from '@/components/studio/StudioComposer';
 
+import { StudioReviewRail } from '@/components/studio/StudioReviewRail';
+
 export const StudioPage = () => {
   const { activeProject, refreshActiveProject } = useProject();
+  const location = useLocation();
+  const restoreRequestId = location.state?.restoreRequestId;
   
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-5');
   const [isGenerating, setIsGenerating] = useState(false);
   
   const [futureAppCode, setFutureAppCode] = useState(null);
+  const [summary, setSummary] = useState('');
   const [activeRequestId, setActiveRequestId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ideasLoading, setIdeasLoading] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      if (!activeProject?.id) return;
+      try {
+        let draftReq = null;
+        if (restoreRequestId) {
+          draftReq = await requestsService.get(restoreRequestId);
+        } else {
+          draftReq = await requestsService.getLatestDraft(activeProject.id);
+        }
+        
+        if (draftReq) {
+          setActiveRequestId(draftReq.id);
+          setPrompt(draftReq.raw_request || '');
+          const { generatedCodeService } = require('@/lib/firebase-service');
+          const genCode = await generatedCodeService.getByRequest(draftReq.id);
+          if (genCode && genCode.length > 0) {
+            const uiChange = genCode[0].code_changes?.find(c => c.file_path.endsWith('.jsx') || c.file_path.endsWith('.html'));
+            const diffToRender = uiChange ? uiChange.diff : genCode[0].code_changes?.[0]?.diff;
+            if (diffToRender) {
+              setFutureAppCode(diffToRender);
+              setSummary(genCode[0].summary || '');
+              toast.info(restoreRequestId ? 'Restored version loaded.' : 'Loaded your active draft session.');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load draft/version:', err);
+      }
+    };
+    loadDraft();
+  }, [activeProject?.id, restoreRequestId]);
+
+  const handleSaveDraft = () => {
+    if (activeRequestId) {
+      toast.success('Draft saved successfully.');
+    }
+  };
 
   // Note: BuildProjectContext logic and specific prompts are preserved from Phase 1.
   // This refactor focuses entirely on UI structure.
@@ -37,6 +83,7 @@ export const StudioPage = () => {
     }
     setIsGenerating(true);
     setFutureAppCode(null);
+    setSummary('');
 
     try {
       toast.info('Working on your changes…');
@@ -54,6 +101,7 @@ export const StudioPage = () => {
         const uiChange = generated.code_changes.find(c => c.file_path.endsWith('.jsx') || c.file_path.endsWith('.html'));
         const diffToRender = uiChange ? uiChange.diff : generated.code_changes[0].diff;
         setFutureAppCode(diffToRender);
+        setSummary(generated.summary || '');
         toast.success('Your preview is ready!');
       } else {
         toast.error("We couldn't build a preview for this request.");
@@ -81,6 +129,7 @@ export const StudioPage = () => {
       }
       toast.success('Your changes are now live!');
       setFutureAppCode(null);
+      setSummary('');
       setPrompt('');
       setConfirmOpen(false);
     } catch (e) {
@@ -114,25 +163,37 @@ export const StudioPage = () => {
         projectName={activeProject?.name} 
         onPublish={() => setConfirmOpen(true)}
         canPublish={!!futureAppCode && !isGenerating}
+        onSaveDraft={handleSaveDraft}
       />
       <TrustStrip />
       
-      <StudioPreviewStage 
-        currentDomain={activeProject?.domain}
-        futureAppCode={futureAppCode}
-        isGenerating={isGenerating}
-      />
+      <div className="flex-1 flex min-h-0 relative">
+        <div className="flex-1 min-w-0 flex flex-col">
+          <StudioPreviewStage 
+            currentDomain={activeProject?.domain}
+            futureAppCode={futureAppCode}
+            isGenerating={isGenerating}
+          />
 
-      <StudioComposer 
-        prompt={prompt}
-        setPrompt={setPrompt}
-        onGenerate={handleGenerate}
-        isGenerating={isGenerating}
-        model={model}
-        setModel={setModel}
-        onGetIdeas={handleGetIdeas}
-        ideasLoading={ideasLoading}
-      />
+          <StudioComposer 
+            prompt={prompt}
+            setPrompt={setPrompt}
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            model={model}
+            setModel={setModel}
+            onGetIdeas={handleGetIdeas}
+            ideasLoading={ideasLoading}
+          />
+        </div>
+        
+        <StudioReviewRail 
+          isGenerating={isGenerating}
+          futureAppCode={futureAppCode}
+          summary={summary}
+          onPublish={() => setConfirmOpen(true)}
+        />
+      </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="bg-surface border-subtle rounded-[var(--radius-card)]">
