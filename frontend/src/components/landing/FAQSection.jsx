@@ -1,57 +1,55 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+
+const faqs = [
+  {
+    q: 'Do I need to be a developer to use it?',
+    a: "No. Studio is designed for mixed teams. You describe changes in plain language, click on the element you want to edit, and review a visual preview. Developers get more power (diffs, tokens, guardrails), but non-technical teammates can ship copy, layout, and content edits on their own.",
+  },
+  {
+    q: 'Will it change my live site immediately?',
+    a: "Never. Every change lands in a draft with a visual preview and a code diff. Nothing touches your live site until you explicitly click Publish — and even then, every version is stored so you can roll back instantly.",
+  },
+  {
+    q: 'Can I keep my brand consistent?',
+    a: "Yes — and this is the point. Studio reads your design tokens (colors, fonts, spacing, radii) and passes them into every AI request as hard constraints. The model can't invent new colors or off-brand typography. If it tries, the change is flagged before you ever see it.",
+  },
+  {
+    q: 'Can I use my own model keys?',
+    a: "Absolutely. Bring your own OpenAI, Anthropic, or Gemini keys and only pay your provider directly. Prefer simplicity? Use a managed plan and we'll handle the billing and routing for you. Either way, you're in control of cost and model selection.",
+  },
+];
 
 export const FAQSection = () => {
-  const [openIndex, setOpenIndex] = useState(0);
+  const [openIdx, setOpenIdx] = useState(null);
 
-  const faqs = [
-    {
-      q: "Do I need to be a developer to use it?",
-      a: "No. The guided workflow is built so non-technical users can request changes, review previews, and publish safely. Advanced users can go deeper when needed."
-    },
-    {
-      q: "Will it change my live site immediately?",
-      a: "No. The product is designed around safe preview first. Your live site stays unchanged until you explicitly publish."
-    },
-    {
-      q: "Can I keep my brand consistent?",
-      a: "Yes. The system uses saved brand rules, project context, and previous approved changes to reduce random styling drift."
-    },
-    {
-      q: "Can I use my own model keys?",
-      a: "Yes. You can bring your own keys or use managed platform access depending on your setup and pricing model."
-    }
-  ];
+  const toggle = (i) => {
+    setOpenIdx(prev => prev === i ? null : i);
+  };
 
   return (
-    <section id="faq" className="py-24 px-6 bg-white">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-16">
-          <span className="text-sm font-bold text-violet-600 uppercase tracking-widest">FAQ</span>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 mt-4 mb-6">
-            The questions people will ask before signing up
-          </h2>
+    <section id="faq">
+      <div className="container">
+        <div className="section-head reveal">
+          <span className="eyebrow"><span className="dot"></span>Questions</span>
+          <h2>Frequently asked.</h2>
         </div>
-
-        <div className="space-y-4">
-          {faqs.map((faq, i) => (
-            <div 
-              key={i} 
-              className={`border border-slate-200 rounded-[24px] overflow-hidden transition-all ${openIndex === i ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'}`}
-            >
-              <button 
-                className="w-full px-8 py-6 flex items-center justify-between text-left focus:outline-none"
-                onClick={() => setOpenIndex(openIndex === i ? -1 : i)}
+        <div className="faq-wrap">
+          {faqs.map((item, i) => (
+            <div className={`faq-item reveal${openIdx === i ? ' open' : ''}`} key={i}>
+              <button
+                className="faq-q"
+                onClick={() => toggle(i)}
+                aria-expanded={openIdx === i}
               >
-                <span className="text-lg font-bold text-slate-900">{faq.q}</span>
-                <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${openIndex === i ? 'rotate-180' : ''}`} />
+                {item.q}
+                <span className="plus">+</span>
               </button>
-              
-              {openIndex === i && (
-                <div className="px-8 pb-6 text-slate-600 leading-relaxed border-t border-slate-100 pt-4">
-                  {faq.a}
-                </div>
-              )}
+              <div
+                className="faq-a"
+                style={openIdx === i ? { maxHeight: '400px' } : {}}
+              >
+                <div className="faq-a-inner">{item.a}</div>
+              </div>
             </div>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import '../../styles/landing.css';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { ValueStrip } from '@/components/landing/ValueStrip';
@@ -8,21 +8,20 @@ import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { AudienceSection } from '@/components/landing/AudienceSection';
 import { DifferentiatorSection } from '@/components/landing/DifferentiatorSection';
+import { TryItSection } from '@/components/landing/TryItSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
 export const LandingPage = () => {
-  const location = useLocation();
-
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location.pathname]);
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden selection:bg-violet-600/20">
+    <div style={{minHeight:'100vh', background:'#080c18', color:'#f1f5f9', overflowX:'hidden'}}>
       <LandingHeader />
-      
-      <main>
+      <main id="top">
         <HeroSection />
         <ValueStrip />
         <WhySection />
@@ -30,9 +29,9 @@ export const LandingPage = () => {
         <FeaturesSection />
         <AudienceSection />
         <DifferentiatorSection />
+        <TryItSection />
         <FAQSection />
       </main>
-
       <LandingFooter />
     </div>
   );
