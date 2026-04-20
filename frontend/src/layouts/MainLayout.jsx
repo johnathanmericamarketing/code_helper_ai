@@ -10,7 +10,7 @@ export const MainLayout = () => {
 
   return (
     <div
-      className="flex h-screen overflow-hidden"
+      className="dark flex h-screen overflow-hidden"
       style={{ backgroundColor: 'var(--bg-app)' }}
     >
       {/* ── Desktop sidebar ── */}

@@ -119,13 +119,16 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto border-[var(--border-subtle)]"
+        style={{ backgroundColor: 'var(--bg-surface)' }}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <Sparkles className="w-5 h-5" style={{ color: 'var(--accent-500)' }} />
             Let's set up this site
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription style={{ color: 'var(--text-muted)' }}>
             Three quick questions so we can make smart changes and keep notes for next time.
           </DialogDescription>
         </DialogHeader>
@@ -138,13 +141,27 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
             const Icon = s.icon;
             return (
               <React.Fragment key={s.id}>
-                <div className={`flex items-center gap-2 ${active ? 'text-primary' : done ? 'text-success' : 'text-muted-foreground'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${active ? 'border-primary bg-primary/10' : done ? 'border-success bg-success/10' : 'border-muted'}`}>
+                <div
+                  className="flex items-center gap-2"
+                  style={{ color: active ? 'var(--accent-500)' : done ? 'var(--success-text)' : 'var(--text-muted)' }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center border-2"
+                    style={{
+                      borderColor: active ? 'var(--accent-500)' : done ? 'var(--success-text)' : 'var(--border-strong)',
+                      backgroundColor: active ? 'rgba(139,92,246,0.1)' : done ? 'rgba(52,211,153,0.1)' : 'transparent',
+                    }}
+                  >
                     {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
                   <span className="text-xs font-semibold hidden sm:inline">{s.label}</span>
                 </div>
-                {i < STEPS.length - 1 && <div className={`flex-1 h-[2px] mx-2 ${done ? 'bg-success' : 'bg-muted'}`} />}
+                {i < STEPS.length - 1 && (
+                  <div
+                    className="flex-1 h-[2px] mx-2"
+                    style={{ backgroundColor: done ? 'var(--success-text)' : 'var(--border-strong)' }}
+                  />
+                )}
               </React.Fragment>
             );
           })}
@@ -154,62 +171,92 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
         {step === 1 && (
           <div className="space-y-4 py-2">
             <div>
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-primary"/> Have you made a backup of your site?
+              <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <ShieldCheck className="w-4 h-4" style={{ color: 'var(--accent-500)' }}/> Have you made a backup of your site?
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">A backup means we can undo anything if something doesn't look right.</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>A backup means we can undo anything if something doesn't look right.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setBackupHave('yes')}
-                className={`border rounded-lg p-4 text-left transition-colors ${backupHave === 'yes' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                className="rounded-xl p-4 text-left transition-all border"
+                style={{
+                  borderColor: backupHave === 'yes' ? 'var(--accent-500)' : 'var(--border-subtle)',
+                  backgroundColor: backupHave === 'yes' ? 'rgba(139,92,246,0.1)' : 'var(--bg-app)',
+                }}
               >
-                <div className="font-semibold">Yes, I have one</div>
-                <div className="text-xs text-muted-foreground mt-1">Great — we're good to go.</div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Yes, I have one</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Great — we're good to go.</div>
               </button>
               <button
                 type="button"
                 onClick={() => setBackupHave('no')}
-                className={`border rounded-lg p-4 text-left transition-colors ${backupHave === 'no' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                className="rounded-xl p-4 text-left transition-all border"
+                style={{
+                  borderColor: backupHave === 'no' ? 'var(--accent-500)' : 'var(--border-subtle)',
+                  backgroundColor: backupHave === 'no' ? 'rgba(139,92,246,0.1)' : 'var(--bg-app)',
+                }}
               >
-                <div className="font-semibold">No, not yet</div>
-                <div className="text-xs text-muted-foreground mt-1">We'll show you how.</div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>No, not yet</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>We'll show you how.</div>
               </button>
             </div>
 
             {backupHave === 'no' && (
               <div className="space-y-3 pt-2">
                 <div>
-                  <Label htmlFor="platform" className="text-sm">What kind of site is it?</Label>
+                  <Label htmlFor="platform" className="text-sm" style={{ color: 'var(--text-secondary)' }}>What kind of site is it?</Label>
                   <Select value={platform} onValueChange={setPlatform}>
-                    <SelectTrigger id="platform" className="mt-1">
+                    <SelectTrigger
+                      id="platform"
+                      className="mt-1 border-[var(--border-subtle)] rounded-[var(--radius-button)]"
+                      style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }}
+                    >
                       <SelectValue placeholder="Pick the closest match" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {PLATFORMS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                    <SelectContent
+                      className="border-[var(--border-subtle)]"
+                      style={{ backgroundColor: 'var(--bg-surface)' }}
+                    >
+                      {PLATFORMS.map((p) => (
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {p.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 {platform && (
-                  <Alert>
-                    <Info className="w-4 h-4" />
-                    <AlertTitle>How to back up your {PLATFORMS.find((p) => p.id === platform)?.label} site</AlertTitle>
-                    <AlertDescription>{BACKUP_HELP[platform]}</AlertDescription>
+                  <Alert
+                    className="rounded-xl border"
+                    style={{ backgroundColor: 'var(--bg-app)', borderColor: 'var(--border-subtle)' }}
+                  >
+                    <Info className="w-4 h-4" style={{ color: 'var(--accent-500)' }} />
+                    <AlertTitle style={{ color: 'var(--text-primary)' }}>How to back up your {PLATFORMS.find((p) => p.id === platform)?.label} site</AlertTitle>
+                    <AlertDescription style={{ color: 'var(--text-muted)' }}>{BACKUP_HELP[platform]}</AlertDescription>
                   </Alert>
                 )}
               </div>
             )}
 
-            <label className="flex items-start gap-3 p-3 border border-border rounded-md cursor-pointer hover:bg-muted/40">
+            <label
+              className="flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-colors"
+              style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-app)' }}
+            >
               <input
                 type="checkbox"
                 checked={acknowledged}
                 onChange={(e) => setAcknowledged(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-primary"
+                className="mt-0.5 h-4 w-4"
+                style={{ accentColor: 'var(--accent-500)' }}
               />
-              <span className="text-sm">
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 I understand that publishing changes will update my live site, and I've taken (or am OK proceeding without) a backup.
               </span>
             </label>
@@ -220,21 +267,22 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
         {step === 2 && (
           <div className="space-y-4 py-2">
             <div>
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary"/> What do you want to change?
+              <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <Target className="w-4 h-4" style={{ color: 'var(--accent-500)' }}/> What do you want to change?
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">Plain English is fine. We'll use this to plan the work.</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Plain English is fine. We'll use this to plan the work.</p>
             </div>
 
             <Textarea
               value={goalSummary}
               onChange={(e) => setGoalSummary(e.target.value)}
               placeholder="For example: Make the homepage look more modern, add a contact form on the About page, and change the header to dark blue."
-              className="min-h-[110px]"
+              className="min-h-[110px] border-[var(--border-subtle)] rounded-[var(--radius-button)] resize-none"
+              style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', caretColor: 'var(--accent-500)' }}
             />
 
             <div className="space-y-2">
-              <Label className="text-sm">Anything specific you're focused on? (optional)</Label>
+              <Label className="text-sm" style={{ color: 'var(--text-secondary)' }}>Anything specific you're focused on? <span style={{ color: 'var(--text-muted)' }}>(optional)</span></Label>
               <div className="flex flex-wrap gap-2">
                 {GOAL_CATEGORIES.map((cat) => {
                   const picked = goalCats.includes(cat.id);
@@ -243,7 +291,12 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
                       key={cat.id}
                       type="button"
                       onClick={() => toggleCat(cat.id)}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${picked ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:border-primary/50'}`}
+                      className="text-xs px-3 py-1.5 rounded-full border transition-all"
+                      style={{
+                        borderColor: picked ? 'var(--accent-500)' : 'var(--border-subtle)',
+                        backgroundColor: picked ? 'var(--accent-600)' : 'var(--bg-app)',
+                        color: picked ? '#fff' : 'var(--text-secondary)',
+                      }}
                     >
                       {cat.label}
                     </button>
@@ -253,14 +306,16 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pages" className="text-sm">Specific pages to focus on? (optional)</Label>
+              <Label htmlFor="pages" className="text-sm" style={{ color: 'var(--text-secondary)' }}>Specific pages to focus on? <span style={{ color: 'var(--text-muted)' }}>(optional)</span></Label>
               <Input
                 id="pages"
                 value={pages}
                 onChange={(e) => setPages(e.target.value)}
                 placeholder="e.g. homepage, about, /contact"
+                className="border-[var(--border-subtle)] rounded-[var(--radius-button)]"
+                style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }}
               />
-              <p className="text-[11px] text-muted-foreground">Separate with commas. Leave blank if unsure.</p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Separate with commas. Leave blank if unsure.</p>
             </div>
           </div>
         )}
@@ -269,61 +324,74 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
         {step === 3 && (
           <div className="space-y-4 py-2">
             <div>
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Server className="w-4 h-4 text-primary"/> Where does your site live?
+              <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <Server className="w-4 h-4" style={{ color: 'var(--accent-500)' }}/> Where does your site live?
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
                 Pick the server we should connect to for making changes. You only set this up once per site.
               </p>
             </div>
 
             {serversLoading ? (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
+              <div className="flex items-center gap-2 text-sm py-4" style={{ color: 'var(--text-muted)' }}>
                 <Loader2 className="w-4 h-4 animate-spin"/> Loading your servers…
               </div>
             ) : servers.length > 0 ? (
               <div className="space-y-2">
-                <Label className="text-sm">Connect to:</Label>
+                <Label className="text-sm" style={{ color: 'var(--text-secondary)' }}>Connect to:</Label>
                 <Select value={serverId || 'none'} onValueChange={(v) => setServerId(v === 'none' ? '' : v)}>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="border-[var(--border-subtle)] rounded-[var(--radius-button)]"
+                    style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }}
+                  >
                     <SelectValue placeholder="Pick a server" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">I'll connect later</SelectItem>
+                  <SelectContent
+                    className="border-[var(--border-subtle)]"
+                    style={{ backgroundColor: 'var(--bg-surface)' }}
+                  >
+                    <SelectItem value="none" style={{ color: 'var(--text-primary)' }}>I'll connect later</SelectItem>
                     {servers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} <span className="text-muted-foreground text-xs">· {s.server_type?.toUpperCase()} · {s.host}</span>
+                      <SelectItem key={s.id} value={s.id} style={{ color: 'var(--text-primary)' }}>
+                        {s.name} <span style={{ color: 'var(--text-muted)' }}>· {s.server_type?.toUpperCase()} · {s.host}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                   Need to add a new server?{' '}
-                  <Link to="/app/servers" className="underline text-primary inline-flex items-center gap-1">
-                    Manage servers <ExternalLink className="w-3 h-3"/>
+                  <Link to="/app/connections" className="underline inline-flex items-center gap-1" style={{ color: 'var(--accent-500)' }}>
+                    Manage connections <ExternalLink className="w-3 h-3"/>
                   </Link>
                 </p>
               </div>
             ) : (
-              <Alert>
-                <Server className="w-4 h-4" />
-                <AlertTitle>No servers set up yet</AlertTitle>
-                <AlertDescription>
+              <Alert
+                className="rounded-xl border"
+                style={{ backgroundColor: 'var(--bg-app)', borderColor: 'var(--border-subtle)' }}
+              >
+                <Server className="w-4 h-4" style={{ color: 'var(--accent-500)' }} />
+                <AlertTitle style={{ color: 'var(--text-primary)' }}>No servers set up yet</AlertTitle>
+                <AlertDescription style={{ color: 'var(--text-muted)' }}>
                   You can skip this for now and still use the preview. When you're ready to publish changes to your live site, add a connection in{' '}
-                  <Link to="/app/servers" className="underline font-medium">Servers</Link>.
+                  <Link to="/app/connections" className="underline font-medium" style={{ color: 'var(--accent-500)' }}>Connections</Link>.
                 </AlertDescription>
               </Alert>
             )}
           </div>
         )}
 
-        <DialogFooter className="flex justify-between sm:justify-between gap-2">
+        <DialogFooter
+          className="flex justify-between sm:justify-between gap-2 border-t pt-4"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
           <Button
             type="button"
             variant="ghost"
             onClick={() => setStep((s) => Math.max(1, s - 1))}
             disabled={step === 1 || saving}
-            className="gap-1"
+            className="gap-1 rounded-[var(--radius-button)]"
+            style={{ color: 'var(--text-secondary)' }}
           >
             <ArrowLeft className="w-4 h-4"/> Back
           </Button>
@@ -333,7 +401,8 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
               type="button"
               onClick={() => setStep((s) => Math.min(STEPS.length, s + 1))}
               disabled={!canAdvance}
-              className="gap-1"
+              className="gap-1 rounded-[var(--radius-button)] text-white"
+              style={{ backgroundColor: 'var(--accent-600)' }}
             >
               Next <ArrowRight className="w-4 h-4"/>
             </Button>
@@ -342,7 +411,8 @@ export const IntakeWizard = ({ open, onOpenChange, project, onComplete }) => {
               type="button"
               onClick={handleFinish}
               disabled={saving}
-              className="gap-1 bg-gradient-to-r from-primary to-blue-600"
+              className="gap-1 rounded-[var(--radius-button)] text-white"
+              style={{ backgroundColor: 'var(--accent-600)' }}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>}
               {saving ? 'Saving…' : 'Save & start'}
