@@ -70,14 +70,32 @@ export const projectService = {
 
   async list() {
     if (!auth.currentUser?.uid) return [];
-    const snap = await getDocs(
-      query(
-        collection(db, PROJECTS_COL),
-        where('userId', '==', auth.currentUser.uid),
-        orderBy('created_at', 'desc')   // fallback; UI sorts by lastOpenedAt
-      )
-    );
-    const projects = snap.docs.map((d) => normalizeDates({ id: d.id, ...d.data() }));
+    const uid = auth.currentUser.uid;
+
+    let docs = [];
+    try {
+      // Requires composite index: userId ASC + created_at DESC
+      const snap = await getDocs(
+        query(
+          collection(db, PROJECTS_COL),
+          where('userId', '==', uid),
+          orderBy('created_at', 'desc')
+        )
+      );
+      docs = snap.docs;
+    } catch (e) {
+      // Index not ready — fall back to simple where() query, sort in memory
+      if (e.code === 'failed-precondition' || e.code === 'unimplemented') {
+        const snap = await getDocs(
+          query(collection(db, PROJECTS_COL), where('userId', '==', uid))
+        );
+        docs = snap.docs;
+      } else {
+        throw e;
+      }
+    }
+
+    const projects = docs.map((d) => normalizeDates({ id: d.id, ...d.data() }));
     // Sort by lastOpenedAt desc first, then created_at
     return projects.sort((a, b) => {
       const aTime = a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : new Date(a.created_at).getTime();
