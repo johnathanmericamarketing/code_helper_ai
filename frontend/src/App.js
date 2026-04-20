@@ -1,31 +1,35 @@
 import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { MainLayout } from "@/layouts/MainLayout";
+import { MainLayout }    from "@/layouts/MainLayout";
 
-// Pages — using consistent naming
-import { DashboardPage }       from "@/pages/DashboardPage";       // "Projects"
-import { WorkspaceStudioPage } from "@/pages/WorkspaceStudioPage"; // "Studio"
-import { HistoryPage }         from "@/pages/HistoryPage";         // "Versions"
-import { RequestDetailPage }   from "@/pages/RequestDetailPage";   // debug only
-import { KnowledgeBasePage }   from "@/pages/KnowledgeBasePage";   // "Brand"
-import { IntegrationsPage }    from "@/pages/IntegrationsPage";    // "Connections" tab
-import { ServersPage }         from "@/pages/ServersPage";         // "Connections" tab
+// ── Public Pages (untouched) ────────────────────────────────────────────────
+import { LandingPage }   from "@/pages/LandingPage";
+import { AuthPage }      from "@/pages/AuthPage";
+
+// ── New modular pages (post-login) ──────────────────────────────────────────
+import { ProjectsPage }     from "@/pages/ProjectsPage";
+import { BrandPage }        from "@/pages/BrandPage";
+import { VersionsPage }     from "@/pages/VersionsPage";
+import { ConnectionsPage }  from "@/pages/ConnectionsPage";
+import { AssetsPage }       from "@/pages/AssetsPage";
+
+// ── Preserved pages (functional logic unchanged) ────────────────────────────
+import { WorkspaceStudioPage } from "@/pages/WorkspaceStudioPage"; // Studio
 import { SettingsPage }        from "@/pages/SettingsPage";
-import { AuthPage }            from "@/pages/AuthPage";
 import { AdminPage }           from "@/pages/AdminPage";
-import { AssetStudioPage }     from "@/pages/AssetStudioPage";     // "Assets"
+import { RequestDetailPage }   from "@/pages/RequestDetailPage";   // debug
+
 import { Toaster }             from "@/components/ui/sonner";
 import { ThemeProvider }       from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppErrorBoundary }    from "@/components/AppErrorBoundary";
 import { getUserProfile }      from "@/lib/user-service";
-import { LandingPage }         from "@/pages/LandingPage";
 import { ProjectProvider }     from "@/context/ProjectContext";
 
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
-  const location = useLocation();
+  const location        = useLocation();
   if (!currentUser) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
@@ -34,7 +38,7 @@ const ProtectedRoute = ({ children }) => {
 
 const AdminRoute = ({ children }) => {
   const { currentUser } = useAuth();
-  const location = useLocation();
+  const location        = useLocation();
   const [isAdmin, setIsAdmin] = React.useState(null);
 
   React.useEffect(() => {
@@ -43,7 +47,7 @@ const AdminRoute = ({ children }) => {
   }, [currentUser]);
 
   if (!currentUser) return <Navigate to="/auth" state={{ from: location }} replace />;
-  if (isAdmin === null) return null; // loading
+  if (isAdmin === null) return null;
   if (!isAdmin) return <Navigate to="/app" replace />;
   return children;
 };
@@ -57,61 +61,68 @@ function App() {
             <div className="App">
               <BrowserRouter>
                 <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<LandingPage />} />
+                  {/* ── Public ─────────────────────────────────── */}
+                  <Route path="/"     element={<LandingPage />} />
                   <Route path="/auth" element={<AuthPage />} />
 
-                  {/* ── Protected Application Routes ── */}
-                  <Route path="/app" element={
-                    <ProtectedRoute>
-                      <MainLayout />
-                    </ProtectedRoute>
-                  }>
-                    {/* Projects (was Dashboard) */}
-                    <Route index element={<DashboardPage />} />
-                    <Route path="projects" element={<DashboardPage />} />
+                  {/* ── Protected Application Routes ────────────── */}
+                  <Route
+                    path="/app"
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    {/* Default: redirect to projects */}
+                    <Route index element={<Navigate to="/app/projects" replace />} />
 
-                    {/* Studio */}
+                    {/* Projects (new page, replaces DashboardPage) */}
+                    <Route path="projects" element={<ProjectsPage />} />
+
+                    {/* Studio (preserved WorkspaceStudioPage, all logic intact) */}
                     <Route path="studio" element={<WorkspaceStudioPage />} />
 
-                    {/* Brand (was Knowledge Base) */}
-                    <Route path="brand" element={<KnowledgeBasePage />} />
-                    {/* Legacy redirect: /app/knowledge → /app/brand */}
-                    <Route path="knowledge" element={<Navigate to="/app/brand" replace />} />
+                    {/* Brand (new page, replaces KnowledgeBasePage) */}
+                    <Route path="brand" element={<BrandPage />} />
 
-                    {/* Versions (was History) */}
-                    <Route path="versions" element={<HistoryPage />} />
-                    {/* Legacy redirect: /app/history → /app/versions */}
-                    <Route path="history" element={<Navigate to="/app/versions" replace />} />
+                    {/* Versions (new page, replaces HistoryPage) */}
+                    <Route path="versions" element={<VersionsPage />} />
 
-                    {/* Assets */}
-                    <Route path="assets" element={<AssetStudioPage />} />
+                    {/* Assets (new page, replaces AssetStudioPage) */}
+                    <Route path="assets" element={<AssetsPage />} />
 
-                    {/* Connections (merges Integrations + Servers) */}
-                    <Route path="connections" element={<IntegrationsPage />} />
-                    {/* Legacy redirects */}
-                    <Route path="integrations" element={<Navigate to="/app/connections" replace />} />
-                    <Route path="servers"       element={<Navigate to="/app/connections" replace />} />
+                    {/* Connections (new page, merges IntegrationsPage + ServersPage) */}
+                    <Route path="connections" element={<ConnectionsPage />} />
 
-                    {/* Settings */}
+                    {/* Settings (preserved, no changes) */}
                     <Route path="settings" element={<SettingsPage />} />
 
-                    {/* Advanced / Debug — not in main nav */}
+                    {/* ── Legacy redirects — keep old URLs working ── */}
+                    <Route path="dashboard"  element={<Navigate to="/app/projects"    replace />} />
+                    <Route path="knowledge"  element={<Navigate to="/app/brand"       replace />} />
+                    <Route path="history"    element={<Navigate to="/app/versions"    replace />} />
+                    <Route path="integrations" element={<Navigate to="/app/connections" replace />} />
+                    <Route path="servers"    element={<Navigate to="/app/connections" replace />} />
+                    <Route path="request/:id" element={<Navigate to="/app/versions"   replace />} />
+
+                    {/* Debug (not in nav) */}
                     <Route path="debug/requests/:id" element={<RequestDetailPage />} />
-                    {/* Legacy redirect */}
-                    <Route path="request/:id" element={<Navigate to="/app/versions" replace />} />
                   </Route>
 
-                  {/* Admin */}
-                  <Route path="/admin" element={
-                    <AdminRoute>
-                      <div className="min-h-screen bg-background">
-                        <div className="max-w-7xl mx-auto p-6">
-                          <AdminPage />
+                  {/* ── Admin ──────────────────────────────────── */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminRoute>
+                        <div className="min-h-screen bg-background">
+                          <div className="max-w-7xl mx-auto p-6">
+                            <AdminPage />
+                          </div>
                         </div>
-                      </div>
-                    </AdminRoute>
-                  } />
+                      </AdminRoute>
+                    }
+                  />
                 </Routes>
               </BrowserRouter>
               <Toaster position="top-right" richColors />

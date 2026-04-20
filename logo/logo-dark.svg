@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 100" width="380" height="100" fill="none">
+  <!-- Code Helper Studio — Full Logo, Dark Background -->
+  <rect width="380" height="100" fill="#080c18"/>
+  <defs>
+    <radialGradient id="ld-bg" cx="38%" cy="32%" r="72%">
+      <stop offset="0%"  stop-color="#4c1d95"/>
+      <stop offset="50%" stop-color="#2d1063"/>
+      <stop offset="100%" stop-color="#0f0628"/>
+    </radialGradient>
+    <radialGradient id="ld-shine" cx="35%" cy="28%" r="55%">
+      <stop offset="0%"  stop-color="rgba(196,167,255,0.18)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+    <linearGradient id="ld-orbit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0.15"/>
+      <stop offset="50%"  stop-color="#a78bfa" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="ld-txt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4b5fd"/>
+    </linearGradient>
+    <filter id="ld-dot-blur" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ld-txt-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Icon -->
+  <rect x="4" y="4" width="92" height="92" rx="24" fill="url(#ld-bg)"/>
+  <rect x="4" y="4" width="92" height="92" rx="24" fill="url(#ld-shine)"/>
+  <rect x="4" y="4" width="92" height="92" rx="24" stroke="rgba(167,139,250,0.22)" stroke-width="1"/>
+  <ellipse cx="50" cy="50" rx="32" ry="13" stroke="url(#ld-orbit)" stroke-width="0.8" transform="rotate(-30 50 50)" opacity="0.6"/>
+  <ellipse cx="50" cy="50" rx="28" ry="10" stroke="url(#ld-orbit)" stroke-width="0.6" transform="rotate(55 50 50)" opacity="0.4"/>
+  <circle cx="50" cy="50" r="26" stroke="#7c3aed" stroke-width="0.6" stroke-dasharray="4 3" opacity="0.4">
+    <animate attributeName="opacity" values="0.3;0.85;0.3" dur="2.8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+    <animateTransform attributeName="transform" type="scale" values="1;1.06;1" dur="2.8s" repeatCount="indefinite" additive="sum" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1" attributeType="XML"/>
+  </circle>
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="4s" repeatCount="indefinite"/>
+    <circle cx="82" cy="50" r="3.5" fill="#a78bfa" filter="url(#ld-dot-blur)" transform="rotate(-30 50 50) translate(-32 0)"/>
+    <circle cx="82" cy="50" r="2" fill="#e9d5ff" transform="rotate(-30 50 50) translate(-32 0)"/>
+  </g>
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="-360 50 50" dur="6.5s" repeatCount="indefinite"/>
+    <circle cx="50" cy="22" r="2.5" fill="#6366f1" filter="url(#ld-dot-blur)" transform="rotate(55 50 50) translate(0 -4)"/>
+    <circle cx="50" cy="22" r="1.4" fill="#c7d2fe" transform="rotate(55 50 50) translate(0 -4)"/>
+  </g>
+  <circle cx="50" cy="50" r="17" fill="#1a0a3b" stroke="rgba(167,139,250,0.3)" stroke-width="0.8"/>
+  <text x="33" y="54" font-family="'JetBrains Mono','Courier New',monospace" font-size="13" font-weight="700" fill="url(#ld-txt)" filter="url(#ld-txt-glow)">&#62;_</text>
+  <rect x="52.5" y="43.5" width="6" height="10" rx="1.2" fill="#a78bfa" opacity="0.85">
+    <animate attributeName="opacity" values="0.85;0;0.85" dur="0.85s" calcMode="discrete" repeatCount="indefinite"/>
+  </rect>
+  <!-- Wordmark -->
+  <text x="114" y="44" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="26" font-weight="900" letter-spacing="-0.04em" fill="#ffffff">Code Helper</text>
+  <circle cx="113" cy="66" r="2.5" fill="#a78bfa"/>
+  <text x="122" y="70" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="0.18em" fill="#a78bfa">STUDIO</text>
+</svg>

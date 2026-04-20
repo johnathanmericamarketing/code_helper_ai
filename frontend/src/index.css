@@ -1,5 +1,48 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
+/* ── Code Helper Studio — Dark Brand Tokens ──────────────────────────────── */
+/* These are used by all post-login app components via var() and utility classes */
+:root {
+  /* Core Backgrounds — always dark regardless of light/dark toggle */
+  --bg-app:     #080c18;
+  --bg-surface: #0f172a;
+  --bg-muted:   rgba(255, 255, 255, 0.03);
+  --surface:    #0f172a;
+
+  /* Borders */
+  --border-subtle: rgba(148, 163, 184, 0.10);
+  --border-strong: rgba(148, 163, 184, 0.18);
+
+  /* Typography */
+  --text-primary:   #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted:     #94a3b8;
+
+  /* Brand / Violet Accent Scale */
+  --accent-50:  rgba(139, 92, 246, 0.08);
+  --accent-100: rgba(139, 92, 246, 0.15);
+  --accent-200: rgba(139, 92, 246, 0.25);
+  --accent-500: #8b5cf6;
+  --accent-600: #7c3aed;
+  --accent-700: #6d28d9;
+
+  /* Status Colors — dark-tuned */
+  --success-bg:   rgba(16,  185, 129, 0.12);
+  --success-text: #34d399;
+  --warning-bg:   rgba(245, 158,  11, 0.12);
+  --warning-text: #fbbf24;
+  --danger-bg:    rgba(239,  68,  68, 0.12);
+  --danger-text:  #f87171;
+  --info-bg:      rgba(99,  102, 241, 0.12);
+  --info-text:    #818cf8;
+
+  /* Border Radius */
+  --radius-card:    16px;
+  --radius-button:  12px;
+  --radius-pill:    999px;
+  --radius-preview: 20px;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -232,3 +275,46 @@ code, pre {
         border-bottom-color: inherit;
     }
 }
+
+/* ── App Shell Utility Classes ───────────────────────────────────────────── */
+/* Maps redesign class names → CSS variable values so no Tailwind config edit needed */
+@layer utilities {
+  .bg-app               { background-color: var(--bg-app); }
+  .bg-surface           { background-color: var(--bg-surface); }
+  .bg-muted-custom      { background-color: var(--bg-muted); }
+  .border-subtle        { border-color: var(--border-subtle); }
+  .border-strong        { border-color: var(--border-strong); }
+  .text-primary-custom  { color: var(--text-primary); }
+  .text-secondary-custom{ color: var(--text-secondary); }
+  .text-muted-custom    { color: var(--text-muted); }
+  .text-accent          { color: var(--accent-500); }
+
+  /* Active sidebar nav item highlight */
+  .nav-active {
+    background: var(--accent-50);
+    color: var(--accent-500);
+  }
+  .nav-active svg { color: var(--accent-500); }
+
+  /* App shell layout */
+  .app-sidebar {
+    width: 64px;
+    min-width: 64px;
+    background-color: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 4px;
+    transition: width 0.2s ease;
+    position: relative;
+    z-index: 40;
+  }
+  .app-sidebar.expanded {
+    width: 220px;
+    align-items: flex-start;
+    padding: 16px 12px;
+  }
+}
+

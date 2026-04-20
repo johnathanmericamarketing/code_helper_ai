@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import '../styles/landing.css';
+import '../../styles/landing.css';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { ValueStrip } from '@/components/landing/ValueStrip';

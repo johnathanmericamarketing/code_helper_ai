@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Helper Studio — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-base: #080c18;
+      --bg-elevated: #0f172a;
+      --brand-primary: #7c3aed;
+      --brand-secondary: #8b5cf6;
+      --brand-tertiary: #6366f1;
+      --brand-light: #a78bfa;
+      --brand-lighter: #c4b5fd;
+      --text-primary: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-soft: #64748b;
+      --border-default: rgba(148,163,184,0.10);
+      --border-strong: rgba(148,163,184,0.18);
+      --brand-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #4f46e5 100%);
+      --violet-shadow: 0 8px 32px -8px rgba(124,58,237,0.45);
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      padding: 32px 16px;
+    }
+
+    /* ─── Canvas ─── */
+    #particle-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Radial glow ─── */
+    .page-glow {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse 600px 400px at 50% 50%, rgba(124,58,237,0.12) 0%, transparent 70%);
+    }
+
+    /* ─── Content wrapper ─── */
+    .content-wrap {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* ─── Header ─── */
+    .site-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      animation: fadeSlideUp 0.5s ease both;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .wordmark {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: var(--brand-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+
+    .site-subtitle {
+      font-size: 13px;
+      color: var(--text-soft);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+    }
+
+    /* ─── Glass card ─── */
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 20px;
+      box-shadow:
+        0 24px 64px rgba(0,0,0,0.50),
+        0 0 0 1px rgba(124,58,237,0.10);
+      padding: 40px;
+      animation: fadeSlideUp 0.4s ease both 0.08s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(167,139,250,0.25), transparent);
+    }
+
+    /* ─── Form panels ─── */
+    .form-panel {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .form-panel.hidden {
+      display: none;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    .form-panel.visible {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .form-panel.entering {
+      animation: panelIn 0.3s ease both;
+    }
+
+    .form-panel.leaving {
+      animation: panelOut 0.2s ease both;
+    }
+
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes panelOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-8px); }
+    }
+
+    /* ─── Card title ─── */
+    .card-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-bottom: 24px;
+    }
+
+    /* ─── Google button ─── */
+    .google-btn {
+      width: 100%;
+      height: 48px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(148,163,184,0.15);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+      margin-bottom: 20px;
+    }
+
+    .google-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(148,163,184,0.28);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
+
+    .google-btn:active {
+      transform: translateY(0);
+    }
+
+    .google-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Email divider ─── */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .or-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(148,163,184,0.15);
+    }
+
+    .or-text {
+      font-size: 12px;
+      color: var(--text-soft);
+      white-space: nowrap;
+      font-weight: 400;
+    }
+
+    /* ─── Form fields ─── */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-family: var(--font-body);
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-input {
+      width: 100%;
+      height: 44px;
+      background: var(--bg-elevated);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 12px;
+      padding: 0 14px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field-input::placeholder {
+      color: var(--text-soft);
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .field-input:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.20);
+    }
+
+    .field-input.has-toggle {
+      padding-right: 44px;
+    }
+
+    /* ─── Password toggle ─── */
+    .pw-toggle {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-soft);
+      background: none;
+      border: none;
+      padding: 0;
+      transition: color 0.15s ease;
+    }
+
+    .pw-toggle:hover {
+      color: var(--text-muted);
+    }
+
+    /* ─── Submit button ─── */
+    .submit-btn {
+      position: relative;
+      width: 100%;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--brand-gradient);
+      border: none;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: filter 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+      overflow: hidden;
+      margin-top: 4px;
+      margin-bottom: 20px;
+    }
+
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg,
+        transparent 40%,
+        rgba(255,255,255,0.18) 50%,
+        transparent 60%);
+      background-size: 200% 100%;
+      background-position: 200% 0;
+      animation: shimmer 2.8s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .submit-btn:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 8px 24px rgba(124,58,237,0.40);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+      filter: brightness(0.97);
+    }
+
+    .submit-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .btn-label {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── Spinner ─── */
+    .spinner {
+      display: none;
+      position: relative;
+      z-index: 1;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .submit-btn.loading .btn-label { display: none; }
+    .submit-btn.loading .spinner   { display: block; }
+
+    /* ─── Footer toggle ─── */
+    .form-footer {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .toggle-link {
+      background: none;
+      border: none;
+      color: var(--brand-light);
+      font-size: 14px;
+      font-family: var(--font-body);
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.15s ease;
+    }
+
+    .toggle-link:hover {
+      color: var(--brand-lighter);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ─── Entrance animations ─── */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: 28px 20px;
+        border-radius: 16px;
+      }
+
+      .card-title {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Particles -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Radial glow -->
+  <div class="page-glow"></div>
+
+  <!-- Main content -->
+  <div class="content-wrap">
+
+    <!-- Site header -->
+    <header class="site-header">
+      <div class="logo-row">
+        <!-- Animated atom logo -->
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 80 80" width="48" height="48" style="overflow:visible" aria-label="Code Helper Studio logo">
+          <defs>
+            <radialGradient id="auth-core-g" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#c4b5fd"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </radialGradient>
+            <radialGradient id="auth-orb1-g" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#a78bfa"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </radialGradient>
+            <filter id="auth-glow">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Outer rings -->
+          <ellipse cx="40" cy="40" rx="34" ry="14" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="1.5"/>
+          <ellipse cx="40" cy="40" rx="34" ry="14" fill="none" stroke="rgba(167,139,250,0.15)" stroke-width="1" transform="rotate(60,40,40)"/>
+          <ellipse cx="40" cy="40" rx="34" ry="14" fill="none" stroke="rgba(167,139,250,0.15)" stroke-width="1" transform="rotate(-60,40,40)"/>
+          <!-- Core -->
+          <circle cx="40" cy="40" r="7" fill="url(#auth-core-g)" filter="url(#auth-glow)"/>
+          <!-- Orbiting dot 1 -->
+          <circle r="4" fill="url(#auth-orb1-g)" filter="url(#auth-glow)">
+            <animateMotion dur="3s" repeatCount="indefinite">
+              <mpath xlink:href="#auth-path1"/>
+            </animateMotion>
+          </circle>
+          <path id="auth-path1" d="M74,40 A34,14 0 1,1 73.99,40.01" fill="none"/>
+          <!-- Orbiting dot 2 -->
+          <circle r="3" fill="#c4b5fd" opacity="0.9" filter="url(#auth-glow)">
+            <animateMotion dur="4.5s" repeatCount="indefinite" begin="-1.5s">
+              <mpath xlink:href="#auth-path2"/>
+            </animateMotion>
+          </circle>
+          <path id="auth-path2" d="M74,40 A34,14 0 1,1 73.99,40.01" fill="none" transform="rotate(60,40,40)"/>
+          <!-- Orbiting dot 3 -->
+          <circle r="2.5" fill="#818cf8" opacity="0.8" filter="url(#auth-glow)">
+            <animateMotion dur="3.8s" repeatCount="indefinite" begin="-2s">
+              <mpath xlink:href="#auth-path3"/>
+            </animateMotion>
+          </circle>
+          <path id="auth-path3" d="M74,40 A34,14 0 1,1 73.99,40.01" fill="none" transform="rotate(-60,40,40)"/>
+        </svg>
+        <span class="wordmark">Code Helper Studio</span>
+      </div>
+      <p class="site-subtitle">Your personal AI software engineer</p>
+    </header>
+
+    <!-- Auth card -->
+    <div class="auth-card" id="auth-card">
+
+      <!-- ══ Sign In panel ══ -->
+      <div class="form-panel visible" id="signin-panel">
+        <h1 class="card-title">Welcome back</h1>
+        <p class="card-subtitle">Sign in to your account to continue</p>
+
+        <!-- Google -->
+        <button class="google-btn" type="button" aria-label="Continue with Google">
+          <svg class="google-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <!-- Divider -->
+        <div class="or-divider">
+          <div class="or-line"></div>
+          <span class="or-text">or continue with email</span>
+          <div class="or-line"></div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label class="field-label" for="signin-email">Email</label>
+          <div class="field-wrap">
+            <input
+              class="field-input"
+              type="email"
+              id="signin-email"
+              autocomplete="email"
+              placeholder="you@example.com"
+            />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label class="field-label" for="signin-password">Password</label>
+          <div class="field-wrap">
+            <input
+              class="field-input has-toggle"
+              type="password"
+              id="signin-password"
+              autocomplete="current-password"
+              placeholder="••••••••"
+            />
+            <button class="pw-toggle" type="button" aria-label="Toggle password visibility" onclick="togglePw('signin-password', this)">
+              <svg id="signin-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="submit-btn" id="signin-btn" type="button" onclick="handleSubmit(this)">
+          <span class="btn-label">Sign In</span>
+          <div class="spinner"></div>
+        </button>
+
+        <!-- Footer -->
+        <p class="form-footer">
+          Don't have an account?&nbsp;
+          <button class="toggle-link" type="button" onclick="switchMode('signup')">Sign up</button>
+        </p>
+      </div>
+
+      <!-- ══ Sign Up panel ══ -->
+      <div class="form-panel hidden" id="signup-panel">
+        <h1 class="card-title">Create your account</h1>
+        <p class="card-subtitle">Get started — it only takes a minute</p>
+
+        <!-- Google -->
+        <button class="google-btn" type="button" aria-label="Continue with Google">
+          <svg class="google-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <!-- Divider -->
+        <div class="or-divider">
+          <div class="or-line"></div>
+          <span class="or-text">or continue with email</span>
+          <div class="or-line"></div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label class="field-label" for="signup-email">Email</label>
+          <div class="field-wrap">
+            <input
+              class="field-input"
+              type="email"
+              id="signup-email"
+              autocomplete="email"
+              placeholder="you@example.com"
+            />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label class="field-label" for="signup-password">Password</label>
+          <div class="field-wrap">
+            <input
+              class="field-input has-toggle"
+              type="password"
+              id="signup-password"
+              autocomplete="new-password"
+              placeholder="••••••••"
+            />
+            <button class="pw-toggle" type="button" aria-label="Toggle password visibility" onclick="togglePw('signup-password', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="field">
+          <label class="field-label" for="signup-confirm">Confirm Password</label>
+          <div class="field-wrap">
+            <input
+              class="field-input has-toggle"
+              type="password"
+              id="signup-confirm"
+              autocomplete="new-password"
+              placeholder="••••••••"
+            />
+            <button class="pw-toggle" type="button" aria-label="Toggle confirm password visibility" onclick="togglePw('signup-confirm', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="submit-btn" id="signup-btn" type="button" onclick="handleSubmit(this)">
+          <span class="btn-label">Create Account</span>
+          <div class="spinner"></div>
+        </button>
+
+        <!-- Footer -->
+        <p class="form-footer">
+          Already have an account?&nbsp;
+          <button class="toggle-link" type="button" onclick="switchMode('signin')">Sign in</button>
+        </p>
+      </div>
+
+    </div><!-- /auth-card -->
+  </div><!-- /content-wrap -->
+
+  <script>
+    // ─── Force dark mode ───
+    document.documentElement.setAttribute('data-theme', 'dark');
+
+    // ─── Particle canvas ───
+    (function() {
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let W, H, particles = [];
+
+      const PARTICLE_COUNT = 50;
+      const VIOLET = 'rgba(124,58,237,';
+      const INDIGO = 'rgba(99,102,241,';
+
+      function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+
+      function randomBetween(a, b) {
+        return a + Math.random() * (b - a);
+      }
+
+      function createParticle() {
+        const colors = [VIOLET, INDIGO, 'rgba(167,139,250,', 'rgba(148,163,184,'];
+        const base = colors[Math.floor(Math.random() * colors.length)];
+        return {
+          x: randomBetween(0, W),
+          y: randomBetween(0, H),
+          r: randomBetween(0.8, 2.2),
+          vx: randomBetween(-0.18, 0.18),
+          vy: randomBetween(-0.22, 0.22),
+          alpha: randomBetween(0.15, 0.45),
+          color: base
+        };
+      }
+
+      function init() {
+        resize();
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push(createParticle());
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        for (let p of particles) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color + p.alpha + ')';
+          ctx.fill();
+
+          // Move
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // Wrap edges
+          if (p.x < -4) p.x = W + 4;
+          if (p.x > W + 4) p.x = -4;
+          if (p.y < -4) p.y = H + 4;
+          if (p.y > H + 4) p.y = -4;
+        }
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener('resize', () => {
+        resize();
+      });
+
+      init();
+      draw();
+    })();
+
+    // ─── Password show/hide ───
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+
+      // Swap eye icon
+      const svg = btn.querySelector('svg');
+      if (isHidden) {
+        // eye-off
+        svg.innerHTML = `
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        `;
+      } else {
+        // eye
+        svg.innerHTML = `
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        `;
+      }
+    }
+
+    // ─── Mode toggle ───
+    let isAnimating = false;
+
+    function switchMode(mode) {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const showPanel = mode === 'signup'
+        ? document.getElementById('signup-panel')
+        : document.getElementById('signin-panel');
+
+      const hidePanel = mode === 'signup'
+        ? document.getElementById('signin-panel')
+        : document.getElementById('signup-panel');
+
+      // Animate out
+      hidePanel.style.animation = 'panelOut 0.22s ease both';
+      hidePanel.style.opacity = '0';
+      hidePanel.style.transform = 'translateY(-8px)';
+
+      setTimeout(() => {
+        hidePanel.classList.remove('visible');
+        hidePanel.classList.add('hidden');
+        hidePanel.style.animation = '';
+        hidePanel.style.opacity = '';
+        hidePanel.style.transform = '';
+
+        showPanel.classList.remove('hidden');
+        showPanel.classList.add('visible');
+        showPanel.style.opacity = '0';
+        showPanel.style.transform = 'translateY(10px)';
+
+        // Trigger reflow
+        showPanel.getBoundingClientRect();
+
+        showPanel.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+        showPanel.style.opacity = '1';
+        showPanel.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+          showPanel.style.transition = '';
+          isAnimating = false;
+        }, 300);
+      }, 220);
+    }
+
+    // ─── Submit handler ───
+    function handleSubmit(btn) {
+      if (btn.classList.contains('loading')) return;
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }, 1200);
+    }
+  </script>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  var scrollRaf=0;
+  function emitScroll(){
+    scrollRaf=0;
+    var x=window.scrollX||window.pageXOffset||0;
+    var y=window.scrollY||window.pageYOffset||0;
+    window.parent.postMessage({type:'INLINE_EDIT_SCROLL',scrollX:x,scrollY:y},'*');
+  }
+  window.addEventListener('scroll',function(){
+    if(scrollRaf)return;
+    scrollRaf=requestAnimationFrame(emitScroll);
+  },{passive:true,capture:true});
+  emitScroll();
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
+</html>

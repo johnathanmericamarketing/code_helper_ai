@@ -1,49 +1,55 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Sidebar } from '@/components/Sidebar';
-import { Header } from '@/components/Header';
+import { AppSidebar }      from '@/components/shell/AppSidebar';
+import { AppHeader }       from '@/components/shell/AppHeader';
+import { MobileBottomNav } from '@/components/shell/MobileBottomNav';
 
 export const MainLayout = () => {
   const location = useLocation();
   const isStudio = location.pathname.startsWith('/app/studio');
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-background overflow-hidden relative">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ backgroundColor: 'var(--bg-app)' }}
+    >
+      {/* ── Desktop sidebar ── */}
+      <AppSidebar />
 
-      {/* Global sidebar — hidden on Studio (has its own left panel) and always hidden on mobile */}
-      {!isStudio && <Sidebar />}
-
+      {/* ── Right column: header + page content + mobile nav ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
 
         {/* Header:
-              - Non-studio: always shown (desktop + mobile)
-              - Studio desktop: hidden (Studio has its own TopBar)
-              - Studio mobile: shown so user has nav access */}
+              • Non-studio: always shown
+              • Studio on desktop: hidden (Studio has its own TopBar)
+              • Studio on mobile: shown so user can navigate */}
         {!isStudio ? (
           <div className="shrink-0 z-20">
-            <Header />
+            <AppHeader />
           </div>
         ) : (
-          // On studio, show header ONLY on mobile
           <div className="md:hidden shrink-0 z-20">
-            <Header />
+            <AppHeader />
           </div>
         )}
 
+        {/* Page content area */}
         <main className="flex-1 overflow-y-auto w-full relative">
           {isStudio ? (
-            // Studio gets full height, no padding — manages its own layout
+            // Studio owns its full-height layout
             <div className="h-full flex flex-col">
               <Outlet />
             </div>
           ) : (
-            // All other pages: max-width constrained with standard padding
+            // All other pages: centred, padded
             <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-6 md:py-8">
               <Outlet />
             </div>
           )}
         </main>
 
+        {/* Mobile bottom nav (hidden on md+) */}
+        <MobileBottomNav />
       </div>
     </div>
   );
